@@ -1,0 +1,18 @@
+
+# Parallel/serial compilation
+CXX=g++
+
+# Switches for debug mode
+ifneq ($(DEBUG),)
+  CXXFLAGS:=$(CXXFLAGS) -DDEBUG -O0 -pg -g -Wall
+else
+  # optimization flags
+  CXXFLAGS:=$(CXXFLAGS) -O3 -ftracer -floop-optimize -funroll-loops -mtune=native -mmmx -msse2 -mfpmath=sse -g
+endif
+
+MAKEDEPEND=g++ -M $(CXXFLAGS) 
+
+# Linker flags
+TBSRC=../../toolbox/src/
+LDFLAGS=-L$(TBSRC)/libs -ltoolbox -llapack
+CXXFLAGS:=$(CXXFLAGS) -I$(TBSRC)/libs 
