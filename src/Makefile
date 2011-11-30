@@ -9,7 +9,7 @@ TOOLS=dimdist dimlandmark dimproj dimred
 all: $(TOOLS)
 
 clean:
-	rm -f $(TOOLS) $(OBJECTS) $(DEPENDS)
+	rm -f $(OBJECTS) $(DEPENDS)
 
 -include $(DEPENDS)
 %.d: %.cpp
@@ -21,4 +21,4 @@ clean:
 # generates -- and targets -- executables in another directory
 $(TOOLS): % : ../bin/%
 $(TOOLS:%=../bin/%): ../bin/%: %.o libdimred.o
-	$(CXX) $(CXXFLAGS) -o ../bin/$@ $< libdimred.o $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -o $@ $< libdimred.o $(LDFLAGS)

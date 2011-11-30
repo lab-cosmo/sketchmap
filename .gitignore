@@ -1,0 +1,7 @@
+#ignored patterns
+
+bin/*
+*.o
+*.d
+*.a
+make.in

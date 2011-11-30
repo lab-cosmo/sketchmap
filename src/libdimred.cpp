@@ -476,7 +476,7 @@ double NLDRProjection::project(const std::valarray<double>& np, std::valarray<do
     bicub.set_table(gx,gy,gridU,gridDU); 
     
     //std::cerr<<"printing interpolated function\n";
-    std::ofstream intfile(interp_out.c_str());
+    //std::ofstream intfile(interp_out.c_str());
     
     ngrid=opts.grid2; gx.resize(ngrid); gy.resize(ngrid); 
     for (unsigned long i=0; i<ngrid; i++) { gx[i]=gy[i]=(-1.0+i*2.0/(ngrid-1)); }
@@ -493,14 +493,14 @@ double NLDRProjection::project(const std::valarray<double>& np, std::valarray<do
             double f; fixarray<double,2> x;
             x[0]=gx[i]; x[1]=gy[j];
             bicub.get_ydy(x,f,df);
-            intfile<<gx[i]<<" "<<gy[j]<<" "<<f<<"\n";
+            //intfile<<gx[i]<<" "<<gy[j]<<" "<<f<<"\n";
             echi=exp(-(f-reff)/kt);
             if (f<=minf) { mx=x; minf=f; }
             tt+=echi; tx+=x[0]*echi; ty+=x[1]*echi; tr+=sqrt(x[0]*x[0]+x[1]*x[1])*echi;
         }
-        intfile<<std::endl;
+        //intfile<<std::endl;
     }
-    intfile.close();
+    //intfile.close();
     
     tr*=1.0/tt; tx*=1.0/tt; ty*=1.0/tt; 
     
@@ -1308,14 +1308,14 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
             {
                 std::cerr<<" *** LARGE DISPLACEMENT ***\n";
                 std::cerr<<"printing interpolated function\n";
-                std::ofstream intfile((std::string("interpolation.")+int2str(ip)).c_str()); 
+/*/                std::ofstream intfile((std::string("interpolation.")+int2str(ip)).c_str()); 
                 for (unsigned long i=0; i<ngrid; i++)  { for (unsigned long j=0; j<ngrid; j++)
                     {
                         xx[0]=gx[i]; xx[1]=gy[j];
                         bicub.get_ydy(xx,f,df);
                         intfile<<xx[0]<<" "<<xx[1]<<" "<<f<<"\n";
-                    } intfile<<"\n";} //*/ }
-                intfile.close(); 
+                    } intfile<<"\n";}  }
+                intfile.close(); //*/ 
             }
             //intfile.close(); ERROR("BREALK");
             for (unsigned long i=0; i<proj.n; i++) 

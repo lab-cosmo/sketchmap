@@ -1,13 +1,14 @@
 #include "dimreduce.hpp"
 #include "clparser.hpp"
 #include "matrix-io.hpp"
+#include "rndgen.hpp"
 
 using namespace toolbox;
 void banner() 
 {
     std::cerr
             << " USAGE: landmark -D dim -n nlandmark [-pi period] [-spi period] [-wi]           \n"
-            << "                [-i] [-w] [-mode stride|rnd|minmax] [-lowmem]                   \n"
+            << "                [-i] [-w] [-mode stride|minmax] [-lowmem] [-rnd nrnd]           \n"
             << "                                                                                \n"
             << " selects n landmark points from N given in input, with dimensionality D, using  \n"
             << " a greedy MinMax approach (minmax, default), a constant-stride or random        \n"
@@ -17,17 +18,19 @@ void banner()
             << " Optionally [-w] assigns a weight to each landmark by performing a voronoi      \n"
             << " tassellation and assigning the original N points. [-i] print indices of points.\n"
             << " Use -lowmem when -n and N are both large and the nxN distance matrix won't     \n"
-            << " fit memory.                                                                    \n";
+            << " fit memory.                                                                    \n"
+            << " -rnd selecs nrnd random points before starting the usual selection scheme.    \n";
 }
 
 int main(int argc, char**argv)
 {
     CLParser clp(argc,argv);
-    unsigned long D,n,N; 
+    unsigned long D,n,N,nrand; 
     bool fhelp, fweight, findex, flowm, finw;
     double peri, speri; std::string smode;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
             clp.getoption(n,"n",(unsigned long) 100) &&
+            clp.getoption(nrand,"rnd",(unsigned long) 0) &&
             clp.getoption(fhelp,"h",false) &&
             clp.getoption(fweight,"w",false) &&
             clp.getoption(findex,"i",false) &&
@@ -64,18 +67,36 @@ int main(int argc, char**argv)
     LP.resize(n, D); 
     if (flowm) LD.resize(0,0); else LD.resize(n, N);
     
-    LP.row(0)=HP.row(0);
-    double maxd; unsigned long maxj; std::valarray<double> mdlist(N); 
+    double maxd, dij; unsigned long maxj; std::valarray<double> mdlist(N); 
     std::valarray<unsigned long> isel(n); 
     isel[0]=0;
+    if (nrand>0) 
+    {
+        StdRndUniform rndgen;
+        std::cerr<<"picking "<<nrand<<" random points (duplicates are possible)\n";
+        isel[0]=maxj=rndgen()*N;
+        LP.row(0)=HP.row(maxj);
+        for (unsigned long j=0; j<N; ++j) { mdlist[j]=metric->dist(&LP(0,0),&HP(j,0),D); }
+        for (unsigned long i=1; i<nrand; ++i)
+        {
+            isel[i]=maxj=rndgen()*N;
+            LP.row(i)=HP.row(maxj);
+            for (unsigned long j=0; j<N; ++j) 
+            { dij=metric->dist(&LP(i,0),&HP(j,0),D); if (mdlist[j]>dij) mdlist[j]=dij; }
+        }
+    }
+    else
+    {
+        isel[0]=0;
+        LP.row(0)=HP.row(0);
+        for (unsigned long j=0; j<N; ++j) { mdlist[j]=metric->dist(&LP(0,0),&HP(j,0),D); }         
+    }
     std::cerr<<"picking "<<n <<" points out of "<<N<<"\n";
     if (flowm)
     {
-        double dij;
         if (smode=="minmax") 
         {
-            for (unsigned long j=0; j<N; ++j) { mdlist[j]=metric->dist(&LP(0,0),&HP(j,0),D); } 
-            for (unsigned long i=1; i<n; ++i)
+            for (unsigned long i=(nrand==0?1:nrand); i<n; ++i)
             {
                 //std::cerr<<mdlist<<"\n";
                 maxd=0.;  for (unsigned long j=0; j<N; ++j) if (mdlist[j]>maxd) {maxd=mdlist[j]; maxj=j;}
@@ -89,8 +110,7 @@ int main(int argc, char**argv)
         else if (smode=="stride")
         {
             unsigned long stride=(N/n);
-            for (unsigned long j=0; j<N; ++j) { mdlist[j]=metric->dist(&LP(0,0),&HP(j,0),D); } 
-            for (unsigned long i=1; i<n; i++)
+            for (unsigned long i=(nrand==0?1:nrand); i<n; i++)
             {
                 LP.row(i)=HP.row(i*stride);
                 isel[i]=i*stride;
@@ -105,13 +125,14 @@ int main(int argc, char**argv)
         else ERROR("Selection mode "<<smode<<" not implemented yet\n");
     }
     else
-    {
+    {  //!TODO DOUBLE CHECK THIS CODE PATH
         if (smode=="minmax") 
         {
             LD*=0.0;
-            for (unsigned long j=0; j<N; ++j) { LD(0,j)=metric->dist(&LP(0,0),&HP(j,0),D); } 
+            for (unsigned long i=0; i<nrand; ++i)
+            for (unsigned long j=0; j<N; ++j) { LD(i,j)=metric->dist(&LP(i,0),&HP(j,0),D); } 
             mdlist=LD.row(0);
-            for (unsigned long i=1; i<n; ++i)
+            for (unsigned long i=(nrand==0?1:nrand); i<n; ++i)
             {
                 
                 maxd=0.;  for (unsigned long j=0; j<N; ++j) if (mdlist[j]>maxd) {maxd=mdlist[j]; maxj=j;}
@@ -125,7 +146,7 @@ int main(int argc, char**argv)
         else if (smode=="stride")
         {
             unsigned long stride=(N/n); mdlist=-1.0;
-            for (unsigned long i=0; i<n; i++)
+            for (unsigned long i=(nrand==0?1:nrand); i<n; i++)
             {
                 LP.row(i)=HP.row(i*stride);
                 isel[i]=i*stride;
@@ -170,7 +191,8 @@ int main(int argc, char**argv)
     }
     std::cout<<std::scientific; std::cout.precision(6); 
     std::cout<<"# "<<n<<" landmark points selected out of "<<N<<" and chosen by "<<smode<<"\n";
-    std::cout<<"# Max distance detected: "<<maxd<<"\n";
+    std::cout<<"#"; if (nrand>0) std::cout<<" "<<nrand<<" points selected randomly.  ";
+    std::cout<<" Max distance detected: "<<maxd<<"\n";
     for (unsigned long i=0; i<n; ++i)
     {
         if (findex) std::cout<<isel[i]<<" ";
