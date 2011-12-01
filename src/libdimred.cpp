@@ -476,7 +476,7 @@ double NLDRProjection::project(const std::valarray<double>& np, std::valarray<do
     bicub.set_table(gx,gy,gridU,gridDU); 
     
     //std::cerr<<"printing interpolated function\n";
-    //std::ofstream intfile(interp_out.c_str());
+    std::ofstream intfile(interp_out.c_str());
     
     ngrid=opts.grid2; gx.resize(ngrid); gy.resize(ngrid); 
     for (unsigned long i=0; i<ngrid; i++) { gx[i]=gy[i]=(-1.0+i*2.0/(ngrid-1)); }
@@ -493,24 +493,30 @@ double NLDRProjection::project(const std::valarray<double>& np, std::valarray<do
             double f; fixarray<double,2> x;
             x[0]=gx[i]; x[1]=gy[j];
             bicub.get_ydy(x,f,df);
-            //intfile<<gx[i]<<" "<<gy[j]<<" "<<f<<"\n";
+            intfile<<gx[i]<<" "<<gy[j]<<" "<<f<<"\n";
             echi=exp(-(f-reff)/kt);
             if (f<=minf) { mx=x; minf=f; }
             tt+=echi; tx+=x[0]*echi; ty+=x[1]*echi; tr+=sqrt(x[0]*x[0]+x[1]*x[1])*echi;
         }
-        //intfile<<std::endl;
+        intfile<<std::endl;
     }
-    //intfile.close();
+    intfile.close();
     
     tr*=1.0/tt; tx*=1.0/tt; ty*=1.0/tt; 
     
-    std::ofstream pointfile("minimum");
-    pointfile<<tx<<" "<<ty<<"\n";
-    pointfile<<tr*cos(atan2(ty,tx))<<" "<<tr*sin(atan2(ty,tx))<<"\n";
-    pointfile.close();
+//    std::ofstream pointfile("minimum");
+//    pointfile<<tx<<" "<<ty<<"\n";
+//    pointfile<<tr*cos(atan2(ty,tx))<<" "<<tr*sin(atan2(ty,tx))<<"\n";
+//    pointfile.close();
     
     
     hp.resize(np.size()); hp=np;
+    
+    if (kt>0.0) 
+    {
+      mx[0]=tr*cos(atan2(ty,tx)); mx[1]=tr*sin(atan2(ty,tx));
+    }
+    
     
     lp.resize(d);
     if (opts.cgsteps>0)
@@ -526,7 +532,7 @@ double NLDRProjection::project(const std::valarray<double>& np, std::valarray<do
     }
     else
     {
-        lp[0]=tr*cos(atan2(ty,tx)); lp[1]=tr*sin(atan2(ty,tx));
+        lp[0]=mx[0]; lp[1]=mx[1];
     }
     double f; fixarray<double,2>  lx; 
     lx[0]=lp[0]; lx[1]=lp[1];

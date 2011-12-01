@@ -7,39 +7,43 @@ void banner()
 {
     std::cerr
             << " USAGE: dimproj -D hi-dim -d low-dim -P hd-file -p ld-file [-pi period] [-w]    \n"
-            << "               [-g1 grid1] [-g2 grid2] [-gw width] [-gt exp.factor] [-cgmin st] \n"
+            << "               [-grid gw,g1,g2 ] [-cgmin st] [-gt temp]                         \n"
             << "               [-fun-hd s,a,b] [-fun-ld s,a,b] [-h] [-print]       < input      \n"
             << "                                                                                \n"
             << " computes the projection of the points given in input, given landmark points.   \n"
             << " dimension is set by -D option, and the projection is performed down to the     \n"
             << " dimensionality specified by -d. Optionally, high-dimensional data may be       \n"
             << " assumed to lie in a hypertoroidal space with period -pi.                       \n"
-            << " If -cgmin is specified, a global minimization is attempted followed by st      \n"
-            << " steps of conjugate gradient minimization.                                      \n"
+            << " A global minimization is performed on a grid ranging between -gw and +gw in d  \n"            
+            << " dimensions. First, the stress function is computed on g1 points per dim, then  \n"
+            << " an interpolated grid with g2 points is evaluated, and the min selected.        \n"                        
+            << " If -gt is used, an exponential averaging is used instead of the min.           \n"                        
+            << " If -cgmin is specified, the global minimization is followed by st steps of     \n"
+            << " conjugate gradient minimization.                                               \n"
             << " Optionally, a sigmoid function can be applied in the D-dim space (-fun-hd)     \n"
             << " and/or in the d-dim space (-fun-ld). Both parameters must be followed by three \n"
             << " comma separated reals corresponding to sigma, a, b.                            \n"
             << " Data must be provided in the files set by -P and -p and in input in the form:  \n"
             << " X1_1, X1_2, ... X1_D                                                           \n"
             << " X2_1, X2_2, ... X2_D                                                           \n"
-            << " -print specifies that the cost functions for each point must be printed out    \n";
+            << " If [-w] is present, an extra element per row is expected in the high-dimension \n"
+            << " file, which is meant to be the weighting factor for the landmark point.        \n"
+            << " -print specifies that the stress functions for each point must be printed out  \n";
 }
 
 int main(int argc, char**argv)
 {
     CLParser clp(argc,argv);
-    unsigned long D,d,n,grid1,grid2,cgsteps; double gtemp, gwidth;
-    std::string fP, fp, fdhd, fdld; bool fhelp, fprint, fweight;
+    unsigned long D,d,n,cgsteps; double gtemp;
+    std::string fP, fp, fdhd, fdld, gpars; bool fhelp, fprint, fweight;
     double peri, speri;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
             clp.getoption(d,"d",(unsigned long) 2) &&
             clp.getoption(fP,"P",std::string("")) &&
             clp.getoption(fp,"p",std::string("")) &&
-            clp.getoption(grid1,"g1",(unsigned long) 21) &&
-            clp.getoption(grid2,"g2",(unsigned long) 201) &&
+            clp.getoption(gpars,"grid",std::string("1.0,21,201")) &&
             clp.getoption(cgsteps,"cgmin", (unsigned long) 0) &&
-            clp.getoption(gwidth,"gw", 4.0) &&
-            clp.getoption(gtemp,"gt", 1e-3) &&
+            clp.getoption(gtemp,"gt",0.0) &&            
             clp.getoption(fdhd,"fun-hd",std::string("identity")) &&
             clp.getoption(fdld,"fun-ld",std::string("identity")) &&
             clp.getoption(fhelp,"h",false) &&
@@ -89,7 +93,8 @@ int main(int argc, char**argv)
     else if (speri==0) { opts.nopts.ometric=&nperi; }
     else { opts.nopts.ometric=&nsphere; std::cerr<<"Spherical geodesic distances\n"; }
     
-    std::valarray<double> tfpars; 
+    std::valarray<double> tfpars;     
+    
     if (fdhd=="identity")
     { tfpars.resize(0); opts.tfunH.set_mode(NLDRIdentity,tfpars); }
     else 
@@ -105,8 +110,12 @@ int main(int argc, char**argv)
       csv2floats(fdld,tfpars); if (tfpars.size()<3) ERROR("-fun-ld argument must be of the form sigma,a,b")
       opts.tfunL.set_mode(NLDRXSigmoid,tfpars); 
     }
+
+    std::cerr<<"grid pars"<<tfpars;    
+    csv2floats(gpars,tfpars); if (tfpars.size()<3) ERROR("-grid argument requires gw,g1,g2")    
+    opts.grid1=tfpars[1]; opts.grid2=tfpars[2]; opts.gwidth=tfpars[0]; opts.gtemp=gtemp; opts.cgsteps=cgsteps;
+    std::cerr<<"grid pars"<<tfpars;
     
-    opts.grid1=grid1; opts.grid2=grid2; opts.gtemp=gtemp; opts.gwidth=gwidth; opts.cgsteps=cgsteps;
     nlproj.set_options(opts);
     std::valarray<double> nw(n); for (int i=0; i<n; i++)nw[i]=pweight[i];
     nlproj.set_points(HP,lp,nw);

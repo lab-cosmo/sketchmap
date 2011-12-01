@@ -8,8 +8,9 @@ using namespace toolbox;
 void banner() 
 {
     std::cerr
-            << " USAGE: dimred -D hi-dim -d low-dim -mode mode -pi period [-v|-vv] [-h] [-w]    \n"
-            << "               [-center] [-plumed]                                              \n"
+            << " USAGE: dimred -D hi-dim -d low-dim -pi period [-v|-vv] [-h] [-w] [-init file]  \n"
+            << "               [-center] [-plumed] [-fun-hd s,a,b] [-fun-ld s,a,b] [-imix mix]  \n"
+            << "               [-preopt steps] [-grid gw,g1,g2] [-gopt steps]                   \n"            
             << "                                                                                \n"
             << " compute the dimensionality reduction of data points given in input. The high   \n"
             << " dimension is set by -D option, and the projection is performed down to the     \n"
@@ -21,22 +22,18 @@ void banner()
             << " where wi's are optional weights to be given if -w is chosen.                   \n"
             << " Verbosity of output is controlled by -v and -vv options, and optionally        \n"
             << " output can be made compatible with the PLUMED implementation of bespoke CVs    \n"
-            << " by the -plumed option. -center removes the average value of points before out. \n"
-            << " Possible NLDR modes and corresponding specific options are:                    \n"
-            << " -mode MDS:   performs multi-dimensional scaling (no additional options)        \n"
-            << " -mode IMDS:  iterative optimization of distances                               \n"
-            << "   -sigma sigma  (typical length-scale for dist function)                       \n"
-            << "   -fun function (distance function to be applied) [identity,sigmoid,compress]  \n"
-            << "   -steps steps  (n. of steps to be attempted for minimization)                 \n"
-            << "   -init file    (where to read initial positions from [MDS is used otherwise]) \n"
-            << "   -imode imode  (minimizer to be used) [conjgrad,simplex,anneal]               \n"
-            << "   -imix fmix    adds in a fraction of pure distance fit in minimizer [0.0]     \n"
-            << "   -randomize s  randomize initial points with gaussian noise of sigma s        \n"
-            << " -mode GMDS:  iterative optimization of distances with global search            \n"
-            << "              In addition to the options of MDS, also accepts                   \n"
-            << "   -g1 gridsz1   (number of points in the coarse-grained grid)                  \n"
-            << "   -g2 gridsz2   (number of points in the interpolated grid)                    \n"
-            << "   -gw gridwidth (extent of the grid in all directions)                         \n";
+            << " by the -plumed option. -center weight-centers points around the origin.        \n"
+            << " The mode of operation is that initial low-dim points are loaded from -init     \n"
+            << " file. If absent, multi-dimensional scaling is performed to get starting pos.   \n"
+            << " Then, iterative optimization starts, for -preopt steps of conjugate gradient.  \n"
+            << " The stress function is given by chi=mix*chi_id+(1-mix) chi_fun where chi_id    \n"
+            << " is the quadratic discrepancy of distances, and chi_fun is computed applying    \n"
+            << " -fun-hd and -fun-ld (both default to identity, otherwise sigma,a,b must be     \n"
+            << " given, which control the shape of the sigmoid function.                        \n"
+            << " If -grid is given, after this pre-optimization a pointwise-global optimizer    \n"
+            << " is run, which minimized one point at a time on a grid over [-gw:gw], with g1   \n"
+            << " points on the coarse grid and g2 points on the fine grid. -gopt steps of CG    \n"
+            << " optimizer are then performed.                                                  \n";
 }
 
 int main(int argc, char**argv)
