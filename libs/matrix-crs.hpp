@@ -1,3 +1,10 @@
+/* Compressed row storage matrix format
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+
+
 #ifndef __MATRIX_CRS_H
 #define __MATRIX_CRS_H
 
@@ -12,9 +19,7 @@
 #define __CRS_STORAGE_FREE  131072
 namespace toolbox {
 /****************************************************
- * A class for full-matrices. This also contains    *
- * all the relevant functions which should be imple-*
- * mented by a matrix class.                        *
+ * A class for CRS-matrices.                        *
  ****************************************************/
 template <class U>
 class MatrixOptions<CrsMatrix<U> >

@@ -1,3 +1,9 @@
+/* Minimization library. Mostly implemented as templates.
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+   
 #ifndef __MINSEARCH_H
 #define __MINSEARCH_H 0
 #include "tbdefs.hpp"

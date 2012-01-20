@@ -1,3 +1,9 @@
+/* A library of matrix functions. Uses templates to work on all matrix kinds.
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+
 #ifndef __MATRIX_FUN_H
 #define __MATRIX_FUN_H
 

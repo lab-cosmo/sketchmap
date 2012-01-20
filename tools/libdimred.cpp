@@ -1,3 +1,9 @@
+/* Sketch-map library.
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2011
+   Distributed under the GNU General Public License  
+*/
+
 #include "dimreduce.hpp"
 #include "matrix-io.hpp"
 #include "matrix-conv.hpp"

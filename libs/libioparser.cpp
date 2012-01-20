@@ -1,3 +1,9 @@
+/* A simple yet sophisticated input parser
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+   
 #include "ioparser.hpp"
 /***************************************************************************
  * This contains a bunch of member functions connected with io-lib classes *

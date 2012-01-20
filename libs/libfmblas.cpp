@@ -1,3 +1,9 @@
+/* Hooks for BLAS DGEMM for the full-matrix template.
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+   
 #include "matrix-full-blas.hpp"
 using namespace tbblas;
 namespace toolbox{

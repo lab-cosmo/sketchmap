@@ -1,3 +1,9 @@
+/* Mersenne Twister implementation and general PRNGs.
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+   
 #ifndef __RNDGEN_DEC_H
 #define __RNDGEN_DEC_H
 

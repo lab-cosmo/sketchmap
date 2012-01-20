@@ -1,3 +1,9 @@
+/* A simple parsing library for command line options
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+   
 #ifndef __CLPARSER_H
 #define __CLPARSER_H
 #include "tbdefs.hpp"

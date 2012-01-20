@@ -1,3 +1,9 @@
+/* A simple parsing library for command line options
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+   
 #include "clparser.hpp"
 
 namespace toolbox{

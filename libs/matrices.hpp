@@ -1,3 +1,9 @@
+/* Function definitions for the matrix classes.
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+
 #ifndef __MATRICES_H
 #define __MATRICES_H
 #include "tbdefs.hpp"

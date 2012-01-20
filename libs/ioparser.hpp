@@ -1,3 +1,9 @@
+/* A simple yet sophisticated input parser
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+
 #ifndef __IOPARSER_H
 #define __IOPARSER_H
 

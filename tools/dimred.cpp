@@ -1,3 +1,9 @@
+/* Program to perform sketch-map nonlinear dimensionality reduction
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2011
+   Distributed under the GNU General Public License  
+*/
+
 #include "dimreduce.hpp"
 #include "clparser.hpp"
 #include "matrix-io.hpp"

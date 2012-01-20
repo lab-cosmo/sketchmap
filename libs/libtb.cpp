@@ -1,3 +1,9 @@
+/* Toolbox library. A few simple functions used all around.
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+
 #define __EXTERNALS 1
 #include "tbdefs.hpp"
 #include <vector>

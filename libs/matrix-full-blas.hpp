@@ -1,3 +1,9 @@
+/* Hooks for BLAS DGEMM with FMatrix
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+
 #ifndef __MF_BLAS_H
 #define __MF_BLAS_H 1
 

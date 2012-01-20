@@ -1,3 +1,9 @@
+/* Coordinate matrix storage.
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+
 #ifndef __MATRIX_COORD_H
 #define __MATRIX_COORD_H
 #include "tbdefs.hpp"

@@ -1,3 +1,9 @@
+/* Conversion between matrix formats.
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+
 #ifndef __MATRIX_CONV_H
 #define __MATRIX_CONV_H
 #include "tbdefs.hpp"

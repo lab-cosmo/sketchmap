@@ -1,3 +1,9 @@
+/* Sketch-map library header file
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2011
+   Distributed under the GNU General Public License  
+*/
+
 #ifndef __DIMREDUCE_H
 #define __DIMREDUCE_H 0
 #include "tbdefs.hpp"

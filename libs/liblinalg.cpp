@@ -1,3 +1,10 @@
+/* A collection of LAPACK wrappers for FMatrix
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+   
+   
 #include "linalg.hpp"
 using namespace tblapack;
 

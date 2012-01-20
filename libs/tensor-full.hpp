@@ -1,3 +1,9 @@
+/* Rudimentary tensor class
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+
 #ifndef __TENSOR_FULL_H
 #define __TENSOR_FULL_H
 

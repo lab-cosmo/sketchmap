@@ -1,0 +1,18 @@
+
+# COMPILER AND COMPILER FLAGS
+CXX=g++
+CXXFLAGS:=$(CXXFLAGS) -O3 -ftracer -floop-optimize -funroll-loops
+
+# AUTOMATIC DEPENDENCY GENERATION
+MAKEDEPEND=g++ -M $(CXXFLAGS)
+
+# INCLUDES AND LINKER FLAGS
+# Lapack includes and linking
+
+ILAPACK=
+LLAPACK=-llapack
+
+TBSRC=../libs/
+LDFLAGS=-L$(TBSRC) -ltoolbox $(LLAPACK)
+CXXFLAGS:=$(CXXFLAGS) -I$(TBSRC) $(ILAPACK)
+

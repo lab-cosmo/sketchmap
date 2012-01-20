@@ -1,3 +1,9 @@
+/* A minimal library for function interpolation.
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+   
 #include "interpol.hpp"
 #include "matrix-io.hpp"
 

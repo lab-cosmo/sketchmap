@@ -1,3 +1,9 @@
+/* A library to compute histograms in one and many dimensions
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+
 #ifndef __TOOLS_HISTOGRAM_H
 #define __TOOLS_HISTOGRAM_H
 

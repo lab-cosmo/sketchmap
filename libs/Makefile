@@ -1,4 +1,4 @@
--include ../../make.in
+-include ../make.in
 .PHONY: all clean 
 SOURCES=$(shell ls *.cpp)
 OBJECTS=$(SOURCES:.cpp=.o)

@@ -1,3 +1,9 @@
+/* I/O of matrices. Compatible with ioparser
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2008
+   Distributed under the GNU General Public License  
+*/
+
 #ifndef __MATRIX_IO_H
 #define __MATRIX_IO_H
 /*****************************************************************
