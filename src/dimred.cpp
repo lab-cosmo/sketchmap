@@ -1,3 +1,9 @@
+/* Program to perform sketch-map nonlinear dimensionality reduction
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2011
+   Distributed under the GNU General Public License  
+*/
+
 #include "dimreduce.hpp"
 #include "clparser.hpp"
 #include "matrix-io.hpp"
@@ -38,15 +44,13 @@ void banner()
 
 int main(int argc, char**argv)
 {
-    CLParser clp(argc,argv);
-    double hdsigma, hdexpa, hdexpb; double ldsigma, ldexpa, ldexpb;
+    CLParser clp(argc,argv);    
     double sat1, sat2, irnd, imix;
-    unsigned long D,d,dts,nn, nsteps, pluneigh; double sm, neps,peri,speri; bool fverb, fveryverb, fplumed, fhelp,  fweight, fcenter;
-    unsigned long g1,g2; double gw;
-    std::string nlrmode, fmds, finit, itermode;
+    unsigned long D,d,dts,nn, presteps, gsteps, pluneigh; 
+    double sm, neps,peri,speri; bool fverb, fveryverb, fplumed, fhelp,  fweight, fcenter;
+    std::string fmds, finit, fdhd, fdld, gpars, itermode;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
             clp.getoption(d,"d",(unsigned long) 2) &&
-            clp.getoption(nlrmode,"mode",std::string("LLE")) &&  
             clp.getoption(peri,"pi",0.0) &&
             clp.getoption(speri,"spi",0.0) &&
             clp.getoption(fverb,"v",false) &&  
@@ -55,33 +59,24 @@ int main(int argc, char**argv)
             clp.getoption(fhelp,"h",false) &&
             clp.getoption(fplumed,"plumed",false) && 
             clp.getoption(fcenter,"center",false) && 
-            clp.getoption(hdsigma,"sigma",2.0) &&
-            clp.getoption(hdexpa,"expa",4.0) &&
-            clp.getoption(hdexpb,"expb",4.0) &&
-            clp.getoption(ldsigma,"lsigma",-1.0) &&
-            clp.getoption(ldexpa,"lexpa",-1.0) &&
-            clp.getoption(ldexpb,"lexpb",-1.0) &&
-            clp.getoption(fmds,"fun",std::string("identity")) &&
+            clp.getoption(gpars,"grid",std::string("")) &&
+            clp.getoption(gsteps,"gopt", (unsigned long) 0) &&
+            clp.getoption(presteps,"preopt",(unsigned long) 0) &&
+            clp.getoption(fdhd,"fun-hd",std::string("identity")) &&
+            clp.getoption(fdld,"fun-ld",std::string("identity")) &&
             clp.getoption(itermode,"imode",std::string("conjgrad")) &&
-            clp.getoption(sat1,"sat1",0.1) &&
-            clp.getoption(sat2,"sat2",1e-8) &&
-            clp.getoption(nsteps,"steps",(unsigned long) 100) &&
             clp.getoption(finit,"init",std::string("")) &&
             clp.getoption(irnd,"randomize",0.0) &&
             clp.getoption(imix,"imix",0.0) &&
-            clp.getoption(g1,"g1",(unsigned long) 11) &&
-            clp.getoption(g2,"g2",(unsigned long) 101) &&
-            clp.getoption(gw,"gw",20.0) &&
-            clp.getoption(dts,"dts",(unsigned long) 0) &&
+            clp.getoption(sat1,"sat1",0.1) &&
+            clp.getoption(sat2,"sat2",1e-8) &&
+
             clp.getoption(sm,"smooth",-1e-3) &&  
             clp.getoption(nn,"neigh",(unsigned long) 4) &&
             clp.getoption(neps,"ncut",0.0) && 
             clp.getoption(pluneigh,"nplumed",(unsigned long) 10);
 
-    if (ldsigma<0) ldsigma=hdsigma;    if (ldexpa<0) ldexpa=hdexpa;    if (ldexpb<0) ldexpb=hdexpb;
-    
     if (fhelp || !fok) { banner(); exit(1); }
-    if (dts==0) dts=d; 
     std::vector<std::vector<double> > plist; std::vector<double> point(D), weights;
     
     // reads points from standard input
@@ -98,19 +93,10 @@ int main(int argc, char**argv)
     for (int i=0; i<plist.size(); i++) for (int j=0; j<D; j++) mpoints(i,j)=plist[i][j];
 
     NLDRProjection nlproj;
-    NLDRNeighborOptions nopts; nopts.greediness=NLDRAsym; nopts.maxneigh=nn; nopts.cutoff=neps; 
     NLDRMetricPBC nperi; NLDRMetricEuclid neuclid; NLDRMetricSphere nsphere;
     nperi.periods.resize(D); nperi.periods=peri;
     nsphere.periods.resize(D); nsphere.periods=speri;
-    
-    if (peri==0.0 && speri==0.0) nopts.ometric=&neuclid;
-    else if (speri==0) { nopts.ometric=&nperi; }
-    else { nopts.ometric=&nsphere; std::cerr<<"spherical distances\n"; }
-        
-    NLDRLLEReport llereport;
-    NLDRLLEOptions lleopts; lleopts.nlopts=nopts; lleopts.smooth=sm;  lleopts.lowdim=d; lleopts.dimts=dts;
-    lleopts.rmlonesome=true; lleopts.verbose=fveryverb; 
-    
+            
     NLDRMDSReport mdsreport;
     NLDRMDSOptions mdsopts; mdsopts.lowdim=d; mdsopts.verbose=fveryverb;
     if (peri==0.0 && speri==0.0) mdsopts.metric=&neuclid;
@@ -119,55 +105,36 @@ int main(int argc, char**argv)
     
     NLDRITEROptions iteropts;
     NLDRITERReport iterreport;
-    std::valarray<double> tfpars;
-    iteropts.lowdim=d; iteropts.verbose=fveryverb; iteropts.steps=nsteps;
-    if (fmds=="identity")
-    { tfpars.resize(0); iteropts.tfunH.set_mode(NLDRIdentity,tfpars); iteropts.tfunL=iteropts.tfunH; }
-    else if (fmds=="compress")
-    { 
-        tfpars.resize(1); 
-        tfpars[0]=hdsigma; iteropts.tfunH.set_mode(NLDRCompress,tfpars); 
-        tfpars[0]=ldsigma; iteropts.tfunL.set_mode(NLDRCompress,tfpars); 
-    }
-    else if (fmds=="sigmoid")
-    { 
-        tfpars.resize(1); 
-        tfpars[0]=hdsigma; iteropts.tfunH.set_mode(NLDRSigmoid,tfpars); 
-        tfpars[0]=ldsigma; iteropts.tfunL.set_mode(NLDRSigmoid,tfpars); 
-    }
-    else if (fmds=="xsigmoid")
+    std::valarray<double> tfpars, fhdpars(0.0,3), fldpars(0.0,3), fgrid(0.0,3);
+    iteropts.lowdim=d; iteropts.verbose=fveryverb; iteropts.metric=mdsopts.metric;
+
+    if (fdhd=="identity")
+    { tfpars.resize(0); iteropts.tfunH.set_mode(NLDRIdentity,tfpars); }
+    else 
     {
-        tfpars.resize(3); 
-        tfpars[0]=hdsigma; tfpars[1]=hdexpa; tfpars[2]=hdexpb; iteropts.tfunH.set_mode(NLDRXSigmoid,tfpars); 
-        tfpars[0]=ldsigma; tfpars[1]=ldexpa; tfpars[2]=ldexpb; iteropts.tfunL.set_mode(NLDRXSigmoid,tfpars); 
-        std::cerr<<"XSIGMOID: "<<hdsigma<<" - "<<hdexpa<<" - "<<hdexpb<<
-                ldsigma<<" - "<<ldexpa<<" - "<<ldexpb<<"\n";
+      csv2floats(fdhd,tfpars); if (tfpars.size()<3) ERROR("-fun-hd argument must be of the form sigma,a,b")
+      std::cerr<<"high-dim pars"<<tfpars<<"\n";
+      iteropts.tfunH.set_mode(NLDRXSigmoid,tfpars);  fhdpars=tfpars;
     }
-    else ERROR("Undefined map function for iterative distance matching");
     
-    std::cerr<<iteropts.tfunH.f(5.0)<<","<<iteropts.tfunH.df(5.0)<<"  test function\n";
-    iteropts.metric=mdsopts.metric;
-    iteropts.grid1=g1; iteropts.grid2=g2; iteropts.gridw=gw; 
+    if (fdld=="identity")
+    { tfpars.resize(0); iteropts.tfunL.set_mode(NLDRIdentity,tfpars); }
+    else 
+    {
+      csv2floats(fdld,tfpars); if (tfpars.size()<3) ERROR("-fun-ld argument must be of the form sigma,a,b")
+      std::cerr<<"lo-dim pars"<<tfpars<<"\n";      
+      iteropts.tfunL.set_mode(NLDRXSigmoid,tfpars);  fldpars=tfpars; 
+    }
     
-    /*
-    std::valarray<double> nr(3), nz(3); nr=1.0; nz=0.0;
-    std::cerr<<lleopts.nlopts.ometric->dist(nr,nz)<<" euclid\n";
-    return 0;*/
+    bool doglobal;
+    if (gpars!="")
+    {
+      csv2floats(gpars,tfpars); if (tfpars.size()<3) ERROR("-grid argument requires gw,g1,g2");    
+      fgrid=tfpars;
+      iteropts.grid1=tfpars[1]; iteropts.grid2=tfpars[2]; iteropts.gridw=tfpars[0];  doglobal=true;
+    }  else doglobal=false;
+    
     std::cerr<<"Initialization done, running dim. reduction\n";
-    
-    enum { mMDS, mLLE, mITER } modes;
-    if (nlrmode=="LLE") { modes=mLLE; lleopts.mode=LLE;}
-    else if (nlrmode=="LLTE")  { modes=mLLE; lleopts.mode=LLTE; }
-    else if (nlrmode=="HLLE")  { modes=mLLE; lleopts.mode=HLLE; }
-    else if (nlrmode=="WLLE")  { modes=mLLE; lleopts.mode=LLE; lleopts.nlopts.kw=nn; }
-    else if (nlrmode=="WHLLE") { modes=mLLE; lleopts.mode=HLLE; lleopts.nlopts.kw=nn; }
-    else if (nlrmode=="WLLTE") { modes=mLLE; lleopts.mode=LLTE; lleopts.nlopts.kw=nn; }
-    else if (nlrmode=="MDS")   { modes=mMDS; mdsopts.mode=MDS; }
-    else if (nlrmode=="SMDS")  { modes=mMDS; mdsopts.mode=SMDS; }
-    else if (nlrmode=="TMDS")  { modes=mMDS; mdsopts.mode=TMDS; }
-    else if (nlrmode=="IMDS")  { modes=mITER;  iteropts.global=false; }
-    else if (nlrmode=="GMDS")  { modes=mITER;  iteropts.global=true; }
-    else ERROR("Unsupported NLDR mode. Use LLE or LLTE.");
     
     if (itermode=="conjgrad") iteropts.minmode=NLDRCGradient;
     else if (itermode=="simplex") iteropts.minmode=NLDRSimplex;
@@ -175,10 +142,10 @@ int main(int argc, char**argv)
     iteropts.saopts.temp_init=sat1; iteropts.saopts.temp_final=sat2;
     iteropts.weights.resize(weights.size()); for (unsigned long i=0; i<weights.size();++i) iteropts.weights[i]=weights[i]; iteropts.imix=imix;
     
+    iteropts.ipoints.resize(mpoints.rows(),d);
     if (finit!="")
     {
         //reads initial values of LD points(might be just useless, unless iterative method is requested)
-        iteropts.ipoints.resize(mpoints.rows(),d);
         std::ifstream fip(finit.c_str());
         for (unsigned long i=0; i<mpoints.rows(); i++)
             for (unsigned long j=0; j<d; j++) fip>>iteropts.ipoints(i,j);
@@ -186,30 +153,43 @@ int main(int argc, char**argv)
         if (irnd>0) for (unsigned long i=0; i<mpoints.rows(); i++)
             for (unsigned long j=0; j<d; j++) iteropts.ipoints(i,j)+=prng()*irnd;
     }
+    else
+    {
+      //initialize from classical MDS
+      NLDRMDS(mpoints,nlproj,mdsopts,mdsreport);
+      nlproj.get_points(hplist,lplist);
+      
+      for (unsigned long i=0; i<mpoints.rows(); i++)
+         for (unsigned long j=0; j<d; j++) iteropts.ipoints(i,j)=lplist[i][j];
+    }
     
-    if (modes==mLLE) NLDRLLE(mpoints,nlproj,lleopts,llereport);
-    else if (modes==mMDS) NLDRMDS(mpoints,nlproj,mdsopts,mdsreport);
-    else if (modes==mITER) NLDRITER(mpoints,nlproj,iteropts,iterreport);
+    iteropts.global=false; iteropts.steps=presteps;
+    if (presteps>0) 
+    {  
+      NLDRITER(mpoints,nlproj,iteropts,iterreport);
+      nlproj.get_points(hplist,lplist);  
+    }
+        
+    if (doglobal)
+    {
+      iteropts.global=true; iteropts.steps=gsteps; 
+      for (unsigned long i=0; i<mpoints.rows(); i++)
+         for (unsigned long j=0; j<d; j++) iteropts.ipoints(i,j)=lplist[i][j];      
+      NLDRITER(mpoints,nlproj,iteropts,iterreport);
+    }
     
-    nlproj.get_points(hplist,lplist);
     if (fplumed)
     {
         std::cout << "NLANDMARKS " <<lplist.size()<<"\n\n";
         //std::cout << "SIGMOID "<<hdsigma<<"\n\n"; //!TODO output for sigma in low-dim as well
         std::cout<<"LOW_D_FUNCTION TYPE "<<
-                (fmds=="identity"?"distance":
-                 fmds=="compress"?"compress":
-                 fmds=="sigmoid"?"sigmoid":
-                 fmds=="xsigmoid"?"general":"unknown"
-                )<<" SIGMA "<<ldsigma<<" POWERS "<<ldexpa<<" "<<ldexpb<<"\n";
+                (fdld=="identity"?"distance":"xsigmoid"
+                )<<" SIGMA "<<fldpars[0]<<" POWERS "<<fldpars[1]<<" "<<fldpars[2]<<"\n";
         std::cout<<"HIGH_D_FUNCTION TYPE "<<
-                (fmds=="identity"?"distance":
-                 fmds=="compress"?"compress":
-                 fmds=="sigmoid"?"sigmoid":
-                fmds=="xsigmoid"?"general":"unknown"
-                )<<" SIGMA "<<hdsigma<<" POWERS "<<hdexpa<<" "<<hdexpb<<"\n";
+                (fdhd=="identity"?"distance":"xsigmoid"
+                )<<" SIGMA "<<fhdpars[0]<<" POWERS "<<fhdpars[1]<<" "<<fhdpars[2]<<"\n";
 
-        std::cout << "LIMITS> \n"<<-gw<<" "<<gw<<"\n"<<-gw<<" "<<gw<<"\nLIMITS<\n";
+        std::cout << "LIMITS> \n"<<-fgrid[0]<<" "<<fgrid[0]<<"\n"<<-fgrid[0]<<" "<<fgrid[0]<<"\nLIMITS<\n";
         
         std::cout << "HIGH_D>\n";
         for (int i=0; i<hplist.size(); i++)
@@ -249,17 +229,7 @@ int main(int argc, char**argv)
     {
     if (fverb || fveryverb)
     {
-        if (modes==mLLE) 
-        {
-            std::cout << " ######################## LLE REPORT ###################\n";
-            std::cout << " # Error in fitting HD points: "<<llereport.hd_error<<"\n";
-            std::cout << " # Small Eigenvalues of M: \n # ";
-            for (int i=0; i<llereport.deval.size(); ++i) std::cout<<llereport.deval[i]<<" "; 
-            if (fveryverb) std::cout<<"("<<llereport.dp1eval<<")"; std::cout <<"\n";
-            std::cout << " # Error in fitting LD points: "<<llereport.ld_error<<"\n";
-            std::cout << " # y1 .. yd "<<(fveryverb?" hd_error ld_error ":"")<<"\n";
-        }
-        else if (modes==mMDS)
+        if (presteps==0 && ! doglobal)
         {
             std::cout << " ######################## MDS REPORT ###################\n";
             std::cout << " # Large Eigenvalues of M: \n # ";
@@ -268,11 +238,11 @@ int main(int argc, char**argv)
             std::cout << " # Error in fitting LD points: "<<mdsreport.ld_error<<"\n";
             std::cout << " # y1 .. yd "<<(fveryverb?" ld_error ":"")<<"\n";
         }
-        else if (modes==mITER)
+        else 
         {
-            std::cout << " ################### ITERATIVE"<<(iteropts.global?" gMDS REPORT #############\n":" MDS REPORT ##############\n");
+            std::cout << " ################### ITERATIVE"<<(doglobal?" gMDS REPORT #############\n":" MDS REPORT ##############\n");
             std::cout << " # Computed with function: "<<fmds<<" with pars ?????\n";
-            std::cout << " # Conjugate gradient steps: "<<nsteps<<"\n";
+            std::cout << " # Conjugate gradient steps: "<<presteps+gsteps<<"\n";
             std::cout << " # Error in fitting LD points: "<<iterreport.ld_error<<"\n";
             std::cout << " # y1 .. yd "<<(fveryverb?" ld_error ":"")<<"\n";
         }
@@ -286,9 +256,8 @@ int main(int argc, char**argv)
         for (int h=0; h<d; h++)  std::cout<<lplist[i][h]-com[h]<<" ";
         if (fveryverb) 
         {
-            if (modes==mLLE) std::cout<<llereport.hd_errors[i]<<" "<<llereport.ld_errors[i]<<" ";
-            else if (modes==mMDS) std::cout<<mdsreport.ld_errors[i]<<" ";
-            else if (modes==mITER) std::cout<<iterreport.ld_errors[i]<<" ";
+            if (presteps==0 && ! doglobal) std::cout<<mdsreport.ld_errors[i]<<" ";
+            else std::cout<<iterreport.ld_errors[i]<<" ";
         }
         std::cout<<std::endl;
     }

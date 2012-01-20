@@ -1,3 +1,10 @@
+/* Computes the histogram of distances between datapoints (1D or nD)
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2011
+   Distributed under the GNU General Public License  
+*/
+
+
 #include "dimreduce.hpp"
 #include "clparser.hpp"
 #include "matrix-io.hpp"

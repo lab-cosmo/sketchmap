@@ -1,3 +1,9 @@
+/* Performs out-of-sample sketch-map embedding
+   --------------------------------------------------
+   Author: Michele Ceriotti, 2011
+   Distributed under the GNU General Public License  
+*/
+
 #include "dimreduce.hpp"
 #include "clparser.hpp"
 #include "matrix-io.hpp"
@@ -110,11 +116,9 @@ int main(int argc, char**argv)
       csv2floats(fdld,tfpars); if (tfpars.size()<3) ERROR("-fun-ld argument must be of the form sigma,a,b")
       opts.tfunL.set_mode(NLDRXSigmoid,tfpars); 
     }
-
-    std::cerr<<"grid pars"<<tfpars;    
+    
     csv2floats(gpars,tfpars); if (tfpars.size()<3) ERROR("-grid argument requires gw,g1,g2")    
     opts.grid1=tfpars[1]; opts.grid2=tfpars[2]; opts.gwidth=tfpars[0]; opts.gtemp=gtemp; opts.cgsteps=cgsteps;
-    std::cerr<<"grid pars"<<tfpars;
     
     nlproj.set_options(opts);
     std::valarray<double> nw(n); for (int i=0; i<n; i++)nw[i]=pweight[i];
