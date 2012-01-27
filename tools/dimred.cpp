@@ -176,6 +176,7 @@ int main(int argc, char**argv)
       for (unsigned long i=0; i<mpoints.rows(); i++)
          for (unsigned long j=0; j<d; j++) iteropts.ipoints(i,j)=lplist[i][j];      
       NLDRITER(mpoints,nlproj,iteropts,iterreport);
+      nlproj.get_points(hplist,lplist);        
     }
     
     if (fplumed)

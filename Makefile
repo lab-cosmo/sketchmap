@@ -13,4 +13,4 @@ clean:
 	$(MAKE) -C tools clean
 	
 distclean: clean
-	rm -f bin/*
+	rm -f bin/* libs/libtoolbox.a
