@@ -18,7 +18,7 @@ void banner()
     std::cerr
             << " USAGE: dimdist -D hi-dim -d low-dim -P hd-file -p ld-file -pi period [-w]      \n"
             << "               [-maxd maxd[ maxd2]] [-nbin nbin[ nbin2]] [-wbin wbin]           \n"
-            << "               [-gnuplot] [-h]                                                  \n"
+            << "               [-gnuplot] [-h] [-lowmem]                                        \n"
             << "                                                                                \n"
             << " computes a histogram of D-d fits based on the lists of points given in input.  \n"
             << " dimension is set by -D option, and the projection is performed down to the     \n"
@@ -30,7 +30,8 @@ void banner()
             << " X1_1, X1_2, ... X1_D                                                           \n"
             << " X2_1, X2_2, ... X2_D                                                           \n"
             << " Output is given as Di di n(Di,di) dD dd, optionally [-gnuplot] with breaks     \n"
-            << " to make it compatible with gnuplot.                                            \n";
+            << " to make it compatible with gnuplot. [-lowmem] avoids storing distances in      \n"
+            << " memory, which may be necessary when a large number of samples is analyzed.     \n";
 }
 typedef struct { double D, d; } dpair;
 

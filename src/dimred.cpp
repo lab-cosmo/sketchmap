@@ -149,6 +149,7 @@ int main(int argc, char**argv)
         std::ifstream fip(finit.c_str());
         for (unsigned long i=0; i<mpoints.rows(); i++)
             for (unsigned long j=0; j<d; j++) fip>>iteropts.ipoints(i,j);
+            
         RndGaussian<double> prng;
         if (irnd>0) for (unsigned long i=0; i<mpoints.rows(); i++)
             for (unsigned long j=0; j<d; j++) iteropts.ipoints(i,j)+=prng()*irnd;
@@ -176,6 +177,7 @@ int main(int argc, char**argv)
       for (unsigned long i=0; i<mpoints.rows(); i++)
          for (unsigned long j=0; j<d; j++) iteropts.ipoints(i,j)=lplist[i][j];      
       NLDRITER(mpoints,nlproj,iteropts,iterreport);
+      nlproj.get_points(hplist,lplist);        
     }
     
     if (fplumed)
