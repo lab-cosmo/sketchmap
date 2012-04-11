@@ -1,27 +1,30 @@
 #!/bin/bash
 
+# modify this variable so that it points to the path where the sketch-map
+# executables are stored
 SMAPROOT=$HOME/bin/
 
 # makes sure we have a valid dimred path
 if [ ! -e "$SMAPROOT/dimred" ]; then
-   read -p "Couldn't find dimred. Please enter the path where dimred resides" SMAPROOT
+   read -p "Couldn't find dimred. Please enter the path where dimred resides " SMAPROOT
 fi
 SMAP="$SMAPROOT/dimred"
 
-read -p "Please enter the dimensionality of input data" HD
+read -p "Please enter the dimensionality of input data " HD
 LD=2      #hardcoded, dimred only works with d=2 right now.
 
-read -p "Are points weighted [y/n]?" DOW
+read -p "Are points weighted [y/n]? " DOW
 if [ $DOW = "y" ]; then DOW=" -w "; else DOW=""; fi
 
-read -p "Please enter the periodicity of input data [0 if non-periodic]" PI
-if [ -z $PI ]; then PI=""; else  PI=" -pi $PI"; fi
+PI=0
+read -p "Please enter the periodicity of input data [0 if non-periodic] " PI
+if [ -z $PI -o $PI = "0" ]; then PI=""; else  PI=" -pi $PI"; fi
 
-read -p "Please enter the input data file name" FILEHD
-read -p "Please enter the output data prefix" FILELD
+read -p "Please enter the input data file name " FILEHD
+read -p "Please enter the output data prefix " FILELD
 
-read -p "Please enter high dimension sigma, a, b [e.g. 6.0 2 6 ]" SIGMAHD AHD BHD
-read -p "Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ]" SIGMALD ALD BLD
+read -p "Please enter high dimension sigma, a, b [e.g. 6.0 2 6 ] " SIGMAHD AHD BHD
+read -p "Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] " SIGMALD ALD BLD
 
 rm log
 echo "Now running a preliminary iterative metric MDS and sketch-map."
@@ -42,7 +45,7 @@ SMERR=`awk '/Error/{print $(NF)}'  $FILELD.ismap | tail -n 1`
 IMIX=1.0
 MAXITER=10
 for ((ITER=1; ITER<=$MAXITER; ITER++)); do
-   MDERR=$NDERR
+   MDERR=$NERR
    echo "Mixing in $IMIX"
    if [ ! -e $FILELD.gmds_$ITER ]; then
       $SMAP -vv -D $HD -d $LD $PI $DOW -center -preopt 50 -grid $GW,21,201 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp -gopt 3 -imix $IMIX < $FILEHD > $FILELD.gmds_$ITER 2>>log
@@ -52,7 +55,7 @@ for ((ITER=1; ITER<=$MAXITER; ITER++)); do
    NERR=`awk '/Error/{print $(NF)}' $FILELD.gmds_$ITER  | tail -n 1 `
    echo "Residual error is $NERR"
    IMIX=`echo "$IMIX  $SMERR  $NERR" | awk '{new=$2/($2+$3); if (new<0.1) new=0.1; if (new>0.5) new=0.5; print new*$1 }'`
-   if [ ` echo $MDERR $NERR | awk '{ if (($1-$2)/$2<1e-2) print "done"; else print "nope";}' ` = "done" ]; then break; fi;
+   if [ ` echo $MDERR $NERR | awk '{ if ((($1-$2)/$2)**2<1e-4) print "done"; else print "nope";}' ` = "done" ]; then break; fi;
 done
 
 echo "Doing final fit"
