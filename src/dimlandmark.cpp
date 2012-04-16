@@ -14,7 +14,7 @@ void banner()
 {
     std::cerr
             << " USAGE: landmark -D dim -n nlandmark [-pi period] [-spi period] [-wi]           \n"
-            << "                [-i] [-w] [-mode stride|minmax] [-lowmem] [-rnd nrnd]           \n"
+            << "                [-i] [-w] [-mode stride|minmax|resample|staged] [-lowmem] [-rnd nrnd]  \n"
             << "                                                                                \n"
             << " selects n landmark points from N given in input, with dimensionality D, using  \n"
             << " a greedy MinMax approach (minmax, default), a constant-stride or random        \n"
@@ -31,18 +31,21 @@ void banner()
 int main(int argc, char**argv)
 {
     CLParser clp(argc,argv);
-    unsigned long D,n,N,nrand; 
+    unsigned long D,n,N,nrand,seed; 
     bool fhelp, fweight, findex, flowm, finw;
-    double peri, speri; std::string smode;
+    double peri, speri, gamma, alpha; std::string smode;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
             clp.getoption(n,"n",(unsigned long) 100) &&
             clp.getoption(nrand,"rnd",(unsigned long) 0) &&
+            clp.getoption(seed,"seed",(unsigned long) 12345) &&            
             clp.getoption(fhelp,"h",false) &&
             clp.getoption(fweight,"w",false) &&
             clp.getoption(findex,"i",false) &&
             clp.getoption(finw,"wi",false) &&
             clp.getoption(flowm,"lowmem",false) &&
             clp.getoption(smode,"mode",std::string("minmax")) &&
+            clp.getoption(gamma,"gamma",1.0) &&
+            clp.getoption(alpha,"alpha",1.0) &&            
             clp.getoption(speri,"spi",0.0) &&
             clp.getoption(peri,"pi",0.0);
     
@@ -78,7 +81,7 @@ int main(int argc, char**argv)
     isel[0]=0;
     if (nrand>0) 
     {
-        StdRndUniform rndgen;
+        StdRndUniform rndgen(seed);
         std::cerr<<"picking "<<nrand<<" random points (duplicates are possible)\n";
         isel[0]=maxj=rndgen()*N;
         LP.row(0)=HP.row(maxj);
@@ -97,6 +100,7 @@ int main(int argc, char**argv)
         LP.row(0)=HP.row(0);
         for (unsigned long j=0; j<N; ++j) { mdlist[j]=metric->dist(&LP(0,0),&HP(j,0),D); }         
     }
+    
     std::cerr<<"picking "<<n <<" points out of "<<N<<"\n";
     if (flowm)
     {
@@ -127,6 +131,122 @@ int main(int argc, char**argv)
                 maxd=0.;  for (unsigned long j=0; j<N; ++j) if (mdlist[j]>maxd) maxd=mdlist[j];
                 std::cerr<<"selecting point "<<i<<" : "<<i*stride<<"("<<maxd<<")\n";
             }
+        }
+        else if (smode=="resample")
+        {
+            StdRndUniform rndgen(seed);
+            std::cerr<<"initialize with seed"<<seed<<"first number is "<<rndgen()<<"\n";
+            mdlist=0.0;
+            isel[0]=maxj=rndgen()*N;   //first picks a point randomly
+            LP.row(0)=HP.row(maxj);
+            double totpi=0.0, selpi, lij, lmax;
+            double a2=alpha*alpha*2;
+            for (unsigned long i=1; i<n; i++)
+            {
+               //compute a new set of distances
+               totpi=0.0;
+               for (unsigned long j=0; j<N; ++j) 
+//               { dij=metric->dist(&LP(i-1,0),&HP(j,0),D); mdlist[j]+=(dij==0.0?1.0e200:pow(dij,-gamma)); totpi+=pow(mdlist[j],-gamma); }
+//               { dij=metric->dist(&LP(i-1,0),&HP(j,0),D); mdlist[j]+=(dij==0.0?1.0e200:pow(dij,-2.0)); totpi+=wlist[j]*pow(mdlist[j],-gamma); }
+//               { dij=metric->dist(&LP(i-1,0),&HP(j,0),D); mdlist[j]+=exp(-dij*dij/(2*0.25)); totpi+=wlist[j]*pow(mdlist[j],-gamma); }
+//             // mdlist[j] stores the logarithm of the KMC weight for point j
+               // since the individual points contribution can be tiny, it is important to accumulate the logs
+               { 
+                  dij=metric->dist(&LP(i-1,0),&HP(j,0),D); 
+                  lij=dij*dij/(a2);
+                  if (i==1) mdlist[j]=gamma*lij; // in the first step there is little to think. just weight in the 
+                  else
+                  {
+                     if (mdlist[j]<gamma*lij)
+                        mdlist[j]=mdlist[j]-gamma*log(1.0+exp(-lij+mdlist[j]/gamma));
+                     else
+                        mdlist[j]=gamma*lij-gamma*log(1.0+exp(lij-mdlist[j]/gamma));         
+                 }
+                  if (j==0 || mdlist[j]>lmax) lmax=mdlist[j];
+//                  std::cerr<<"mdlist  "<<dij<<" :: "<<j<<" , "<<mdlist[j]<<"\n";
+               }
+               for (unsigned long j=0; j<N; ++j) totpi+=wlist[j]*exp(mdlist[j]-lmax);
+               std::cerr<<i<<"  : lmax= "<<lmax<< "  totpi "<< totpi<< "\n";
+//               exit(1);
+               selpi=rndgen()*totpi;
+               
+
+               //a better search could be used here but hey....               
+               unsigned long j=0;
+               for (j=0; j<N; ++j) 
+//               {  selpi-=wlist[j]*pow(mdlist[j],-gamma); if(selpi<0.0) { j++; break; } }
+               {  selpi-=wlist[j]*exp(mdlist[j]-lmax); if(selpi<0.0) { j++; break; } }
+               
+               isel[i]=j-1; LP.row(i)=HP.row(isel[i]);      
+               std::cerr<<"selecting point "<<i<<" : "<<isel[i]<<"("<<wlist[j]*exp(mdlist[j]-lmax)/totpi<<")\n";
+            }
+        }
+        else if (smode=="staged")        
+        {
+            StdRndUniform rndgen(seed);
+            FMatrix<double> MP;
+            unsigned long m=sqrt(n*N);
+            std::valarray<unsigned long> msel(m);
+            MP.resize(m, D); 
+            std::cerr<<"initialize with seed"<<seed<<"first number is "<<rndgen()<<"\n";
+            mdlist=0.0;
+            msel[0]=maxj=rndgen()*m;   //first picks a point randomly
+            MP.row(0)=HP.row(maxj);
+            for (unsigned long j=0; j<N; ++j) { mdlist[j]=metric->dist(&MP(0,0),&HP(j,0),D); }       
+        
+            std::cerr<<"now selecting "<<m<< " minmax points\n";
+            for (unsigned long i=1; i<m; ++i)
+            {
+                //std::cerr<<mdlist<<"\n";
+                maxd=0.;  for (unsigned long j=0; j<N; ++j) if (mdlist[j]>maxd) {maxd=mdlist[j]; maxj=j;}
+                std::cerr<<"selecting point "<<i<<" : "<<maxj<<"("<<maxd<<")\n";
+                msel[i]=maxj;
+                MP.row(i)=HP.row(maxj);
+                for (unsigned long j=0; j<N; ++j) 
+                { dij=metric->dist(&MP(i,0),&HP(j,0),D); if (mdlist[j]>dij) mdlist[j]=dij; }
+            }
+            
+            //now gets Voronoi weights for the m points
+            std::valarray<double> mweights(m); mweights=0.0;
+            std::cerr<<"now running Voronoi weight assignment\n";
+            double mind; unsigned long mini;
+            std::vector<std::vector<unsigned long> > vplist(m);
+            for (unsigned long j=0; j<N; ++j)
+            {
+                mind=metric->dist(&LP(0,0),&HP(j,0),D); mini=0;
+                for (unsigned long i=1; i<m; ++i)
+                {
+                    if ((dij=metric->dist(&MP(i,0),&HP(j,0),D))<mind) { mind=dij; mini=i; }
+                }
+                mweights[mini]+=wlist[j];
+                vplist[mini].push_back(j);
+                
+            }
+
+            double tw=0.0;
+            for (unsigned long i=0; i<m; ++i) {  mweights[i]=pow(mweights[i],gamma); tw+=mweights[i]; }
+             
+            //now picks n points
+            double selpi; unsigned long subsel;
+            std::cerr<<"now running picking "<<n<<" final points total weight is "<<tw <<" \n";
+            for (unsigned long i=0; i<n; ++i)
+            {
+               selpi=rndgen()*tw;
+               unsigned long j=0;
+               for (j=0; j<m; ++j) 
+               {  selpi-=mweights[j]; if(selpi<0.0) { j++; break; } }
+               j--;
+               
+               std::cerr<<"picked "<<j<<" weight: "<<mweights[j]<<"\n";
+ //             isel[i]=msel[j]; LP.row(i)=MP.row(j);      
+
+               //actually, picks a random point from the voronoi polihedron
+               subsel=vplist[j][rndgen()*vplist[j].size()];
+               std::cerr<<"  subpoint "<<subsel<<" selected\n";
+               isel[i]=subsel; LP.row(i)=HP.row(subsel);
+            }
+            
+            //TODO the "voronoi" weight of these landmarks is now NOT related to the original probability distribution
         }
         else ERROR("Selection mode "<<smode<<" not implemented yet\n");
     }
@@ -203,7 +323,9 @@ int main(int argc, char**argv)
     {
         if (findex) std::cout<<isel[i]<<" ";
         for (unsigned long j=0; j<D; ++j) std::cout<<LP(i,j)<<" ";
+        if (findex && finw) std::cout<<wlist[isel[i]]<<"  ";
         if (fweight) std::cout<<weights[i];
+        
         std::cout<<"\n";
     }
 }
