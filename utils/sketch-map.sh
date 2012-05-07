@@ -51,14 +51,16 @@ for ((ITER=1; ITER<=$MAXITER; ITER++)); do
       $SMAP -vv -D $HD -d $LD $PI $DOW -center -preopt 50 -grid $GW,21,201 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp -gopt 3 -imix $IMIX < $FILEHD > $FILELD.gmds_$ITER 2>>log
    fi
    grep -v "#" $FILELD.gmds_$ITER | awk '{print $1, $2}' > tmp
-   GW=`awk 'BEGIN{maxr=0} !/#/{r=sqrt($1^2+$2^2); if (r>maxr) maxr=r} END{print maxr*1.2}' $FILELD.gmds_$ITER`;
+   GW=`awk 'BEGIN{maxr=0} !/#/{r=sqrt($1*$1+$2*$2); if (r>maxr) maxr=r} END{print maxr*1.2}' $FILELD.gmds_$ITER`;
    NERR=`awk '/Error/{print $(NF)}' $FILELD.gmds_$ITER  | tail -n 1 `
    echo "Residual error is $NERR"
    IMIX=`echo "$IMIX  $SMERR  $NERR" | awk '{new=$2/($2+$3); if (new<0.1) new=0.1; if (new>0.5) new=0.5; print new*$1 }'`
-   if [ ` echo $MDERR $NERR | awk '{ if ((($1-$2)/$2)**2<1e-4) print "done"; else print "nope";}' ` = "done" ]; then break; fi;
+   echo "DEBUG  $MDERR $NERR"
+   if [ ` echo $MDERR $NERR | awk -v i=$ITER '{ if (i>1 && (($1-$2)/$2)*(($1-$2)/$2)<1e-4) print "done"; else print "nope";}' ` = "done" ]; then ((ITER++)); break; fi;
 done
 
 echo "Doing final fit"
-grep -v "#" $FILELD.gmds_$MAXITER | awk '{print $1, $2}' > tmp
+((ITER--))
+grep -v "#" $FILELD.gmds_$ITER | awk '{print $1, $2}' > tmp
 $SMAP -vv -D $HD -d $LD $PI $DOW -center -preopt 100 -grid $GW,21,201 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp -gopt 10 < $FILEHD > $FILELD.gmds 2>>log
 
