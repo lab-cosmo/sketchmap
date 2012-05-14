@@ -18,6 +18,7 @@
 source $env(VMDDIR)/scripts/init.d/driver_interface.tcl
 source $env(VMDDIR)/scripts/init.d/colvarTools.tcl
 source $env(VMDDIR)/scripts/init.d/cvlist.tcl
+source $env(VMDDIR)/scripts/init.d/fesTools.tcl
 
 package provide plumed_gui 2.0
 package require cvlist 1.0
@@ -517,7 +518,10 @@ proc plumedVis::storeSelection {args} {
 
 # These routines calculate various kinds of colvars
 proc plumedVis::getColvars {type} {
+   variable filename
+
    set tmpd "[ plumedVis::tmpdir ]/plumedvis.[pid]"
+   set filename "$tmpd/COLVAR"
 
    if { $type=="torsions" } {
        ::driverInterface::openTorsionsWindow -tmpdir $tmpd -broadcast "plumedVis"

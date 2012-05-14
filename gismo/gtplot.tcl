@@ -962,7 +962,11 @@ proc gtPlot::2dplotter {canv tag} {
            set w [ expr $data([ list $tag psize]) * ( 1  + [lindex $data([list $tag w]) $i] * $data([list $tag pscale]) ) ]
            if { $data([list $tag drawpoints ]) == 1 } {
               if { $x >= $bounds([list $canv xmin]) && $x <= $bounds([list $canv xmax]) && $y >= $bounds([list $canv ymin]) && $y <= $bounds([list $canv ymax]) } {
-                  drawPoint $canv $x $y $w $c "black" "$tag$i $tag displayed" 
+                  if { $c=="white" } {
+                     drawPoint $canv $x $y $w $c "black" "$tag$i $tag displayed" 
+                  } else {
+                     drawPoint $canv $x $y $w $c $c "$tag$i $tag displayed"
+                  }
               } else { 
                   drawPoint $canv $x $y $w "white" "white" "$tag$i $tag"
               }

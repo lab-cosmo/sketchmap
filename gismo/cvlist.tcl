@@ -277,8 +277,8 @@ proc cvlist::createLandmarks {args} {
       set pflag "-pi $landmarkConfig([list $tag period])"
   } 
 
-  puts "Execute: dimlandmark -D $ncv -n $landmarkConfig([list $tag npoints]) $pflag -mode $landmarkConfig([list $tag mode]) -i -w < CV_DATA > landmarks"
-  catch { exec $env(smapdir)/bin/dimlandmark -D $ncv -n $landmarkConfig([list $tag npoints]) $pflag -mode $landmarkConfig([list $tag mode]) -i -w < CV_DATA > landmarks } diml_stdout
+  puts "Execute: dimlandmark -D $ncv -n $landmarkConfig([list $tag npoints]) $pflag -mode $landmarkConfig([list $tag mode]) -i -w -lowmem < CV_DATA > landmarks"
+  catch { exec $env(smapdir)/bin/dimlandmark -D $ncv -n $landmarkConfig([list $tag npoints]) $pflag -mode $landmarkConfig([list $tag mode]) -i -w -lowmem < CV_DATA > landmarks } diml_stdout
 
   if { [file exists landmarks] } {
      set landmarks {}  ; set fd [open landmarks r] 

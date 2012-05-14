@@ -150,12 +150,12 @@ proc sketchmap::runOutOfSample {args} {
 
    # Run out of sample projection algorithm 
    if { $osampleConfig(rtype)=="mds" } { 
-      puts "Executing: dimproj -D $ncv -d 2 $pflag $wflag -P $lhfile -p $llfile -g1 $osampleConfig(ngridcoarse) -g2 $osampleConfig(ngridfine) -gw $gwidth -fun identity -cgmin $osampleConfig(nconjgrad) < $ifile > OSAMPLES"
-      catch { exec $env(smapdir)/bin/dimproj -D $ncv -d 2 $pflag $wflag -P $lhfile -p $llfile -g1 $osampleConfig(ngridcoarse) -g2 $osampleConfig(ngridfine) -gw $gwidth -fun identity -cgmin $osampleConfig(nconjgrad) < $ifile > OSAMPLES } osample_stdout
+      puts "Executing: dimproj -D $ncv -d 2 $pflag $wflag -P $lhfile -p $llfile -grid $gwidth,$osampleConfig(ngridcoarse),$osampleConfig(ngridfine) -gopt $osampleConfig(nconjgrad) < $ifile > OSAMPLES"
+      catch { exec $env(smapdir)/bin/dimproj -D $ncv -d 2 $pflag $wflag -P $lhfile -p $llfile -grid $gwidth,$osampleConfig(ngridcoarse),$osampleConfig(ngridfine) -gopt $osampleConfig(nconjgrad) < $ifile > OSAMPLES } osample_stdout
       if { [readMikFile -ifile OSAMPLES -errors $osample_stdout -npoints $npoints -projname MDS]==0 } { return 0 }
    } elseif { $osampleConfig(rtype)=="smap" } { 
-      puts "Executing: dimproj -D $ncv -d 2 $pflag $wflag -P $lhfile -p $llfile -g1 $osampleConfig(ngridcoarse) -g2 $osampleConfig(ngridfine) -gw $gwidth -fun xsigmoid -sigma $osampleConfig(sigma) -expa $osampleConfig(aD) -lexpa $osampleConfig(ad) -expb $osampleConfig(bD) -lexpb $osampleConfig(bd) -cgmin $osampleConfig(nconjgrad) < $ifile > OSAMPLES"
-      catch { exec $env(smapdir)/bin/dimproj -D $ncv -d 2 $pflag $wflag -P $lhfile -p $llfile -g1 $osampleConfig(ngridcoarse) -g2 $osampleConfig(ngridfine) -gw $gwidth -fun xsigmoid -sigma $osampleConfig(sigma) -expa $osampleConfig(aD) -lexpa $osampleConfig(ad) -expb $osampleConfig(bD) -lexpb $osampleConfig(bd) -cgmin $osampleConfig(nconjgrad) < $ifile > OSAMPLES } osample_stdout
+      puts "Executing: dimproj -D $ncv -d 2 $pflag $wflag -P $lhfile -p $llfile -grid $gwidth,$osampleConfig(ngridcoarse),$osampleConfig(ngridfine) -fun-hd $osampleConfig(sigma),$osampleConfig(aD),$osampleConfig(bD) -fun-ld $osampleConfig(sigma),$osampleConfig(ad),$osampleConfig(bd) -gopt $osampleConfig(nconjgrad) < $ifile > OSAMPLES"
+      catch { exec $env(smapdir)/bin/dimproj -D $ncv -d 2 $pflag $wflag -P $lhfile -p $llfile -grid $gwidth,$osampleConfig(ngridcoarse),$osampleConfig(ngridfine) -fun-hd $osampleConfig(sigma),$osampleConfig(aD),$osampleConfig(bD) -fun-ld $osampleConfig(sigma),$osampleConfig(ad),$osampleConfig(bd) -gopt $osampleConfig(nconjgrad) < $ifile > OSAMPLES } osample_stdout
       if { [readMikFile -ifile OSAMPLES -errors $osample_stdout -npoints $npoints -projname SMAP]==0 } { return 0 }
    } else {
       puts "Invalid osampleConfig(rtype) ($osampleConfig(rtype)) in call to runOutOfSample"
@@ -194,8 +194,8 @@ proc sketchmap::runSketchMap {args} {
   }
 
   # Run MDS algorithm with eigenvector/eigenvalue solution
-  puts "Executing: dimred -D $ncv -d 2 $pflag -mode MDS < $ifile > MDS_DATA"
-  catch { exec $env(smapdir)/bin/dimred -D $ncv -d 2 $pflag $wflag -mode MDS < $ifile > MDS_DATA } dimr_stdout
+  puts "Executing: dimred -D $ncv -d 2 $pflag $wflag < $ifile > MDS_DATA"
+  catch { exec $env(smapdir)/bin/dimred -D $ncv -d 2 $pflag $wflag < $ifile > MDS_DATA } dimr_stdout
   if { [readMikFile -ifile MDS_DATA -errors $dimr_stdout -npoints [molinfo top get numframes] -projname MDS]==0 } { return 0 }
 
   # Increment the progress bar
@@ -221,8 +221,8 @@ proc sketchmap::runSketchMap {args} {
   set gwidth [ expr  1.1 * [ retrieveDataWidth ] ]
 
   # Run iterative MDS algorithm
-  puts "Executing: dimred -D $ncv -d 2 $pflag -mode GMDS -fun identity -steps $dimredConfig(nconjgrad) -imode conjgrad $wflag -g1 $dimredConfig(ngridcoarse) -g2 $dimredConfig(ngridfine) -gw $gwidth < $ifile > IMDS_DATA"
-  catch { exec $env(smapdir)/bin/dimred -D $ncv -d 2 $pflag -mode GMDS -fun identity -steps $dimredConfig(nconjgrad) -imode conjgrad $wflag -g1 $dimredConfig(ngridcoarse) -g2 $dimredConfig(ngridfine) -gw $gwidth < $ifile > IMDS_DATA } dimr_stdout 
+  puts "Executing: dimred -D $ncv -d 2 $pflag $wflag -preopt $dimredConfig(nconjgrad) -grid $gwidth,$dimredConfig(ngridcoarse),$dimredConfig(ngridfine) -gopt 3 < $ifile > IMDS_DATA"
+  catch { exec $env(smapdir)/bin/dimred -D $ncv -d 2 $pflag $wflag -preopt $dimredConfig(nconjgrad) -grid $gwidth,$dimredConfig(ngridcoarse),$dimredConfig(ngridfine) -gopt 3 < $ifile > IMDS_DATA } dimr_stdout 
   
   # Read the file containing the output data
   if { [readMikFile -ifile IMDS_DATA -errors $dimr_stdout -npoints [molinfo top get numframes] -projname IMDS ]==0 } { return 0 }
@@ -270,8 +270,8 @@ proc sketchmap::runSketchMap {args} {
      set gwidth [ expr  1.1 * [ retrieveDataWidth ] ]
 
      # Run sketch-map algorithm
-     puts "Executing: dimred -D $ncv -d 2 $pflag -mode GMDS -fun xsigmoid -sigma $dimredConfig(sigma) -epxa $dimredConfig(aD) -lexpa $dimredConfig(ad) -expb $dimredConfig(bD) -lexpb $dimredConfig(bd) steps $dimredConfig(nconjgrad) -imode conjgrad $wflag -g1 $dimredConfig(ngridcoarse) -g2 $dimredConfig(ngridfine) -gw $gwidth -init SMAP_IN -imix $alpha < $ifile > SMAP_OUT"
-     catch { exec $env(smapdir)/bin/dimred -D $ncv -d 2 $pflag -mode GMDS -fun xsigmoid -sigma $dimredConfig(sigma) -epxa $dimredConfig(aD) -lexpa $dimredConfig(ad) -expb $dimredConfig(bD) -lexpb $dimredConfig(bd) steps $dimredConfig(nconjgrad) -imode conjgrad $wflag -g1 $dimredConfig(ngridcoarse) -g2 $dimredConfig(ngridfine) -gw $gwidth -init SMAP_IN -imix $alpha < $ifile > SMAP_OUT } dimr_stdout
+     puts "Executing: dimred -D $ncv -d 2 $pflag $wflag -fun-hd $dimredConfig(sigma),$dimredConfig(aD),$dimredConfig(bD) -fun-ld $dimredConfig(sigma),$dimredConfig(ad),$dimredConfig(bd) -preopt $dimredConfig(nconjgrad) -grid $gwidth,$dimredConfig(ngridcoarse),$dimredConfig(ngridfine) -gopt 3 -init SMAP_IN -imix $alpha < $ifile > SMAP_OUT"
+     catch { exec $env(smapdir)/bin/dimred -D $ncv -d 2 $pflag $wflag -fun-hd $dimredConfig(sigma),$dimredConfig(aD),$dimredConfig(bD) -fun-ld $dimredConfig(sigma),$dimredConfig(ad),$dimredConfig(bd) -preopt $dimredConfig(nconjgrad) -grid $gwidth,$dimredConfig(ngridcoarse),$dimredConfig(ngridfine) -gopt 3 -init SMAP_IN -imix $alpha < $ifile > SMAP_OUT } dimr_stdout
 
      # Read the file containing the output data
      if { [readMikFile -ifile SMAP_OUT -errors $dimr_stdout -npoints [molinfo top get numframes] -projname SMAP ]==0 } { return 0 }
