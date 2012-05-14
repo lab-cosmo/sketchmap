@@ -7,7 +7,7 @@ ifneq ($(DEBUG),)
   CXXFLAGS:=$(CXXFLAGS) -DDEBUG -O0 -pg -g -Wall
 else
   # optimization flags
-  CXXFLAGS:=$(CXXFLAGS) -O3 -ftracer -floop-optimize -funroll-loops -mtune=native -mmmx -msse2 -mfpmath=sse -g
+  CXXFLAGS:=$(CXXFLAGS) -O3 -ftracer -floop-optimize -funroll-loops -mmmx -msse2 -mfpmath=sse -g
 endif
 
 MAKEDEPEND=g++ -M $(CXXFLAGS) 
