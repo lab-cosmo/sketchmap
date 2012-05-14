@@ -8,6 +8,8 @@
 #include "clparser.hpp"
 #include "matrix-io.hpp"
 #include "matrix-conv.hpp"
+#include <fenv.h>
+
 
 using namespace toolbox;
 
@@ -44,6 +46,8 @@ void banner()
 
 int main(int argc, char**argv)
 {
+   // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+
     CLParser clp(argc,argv);    
     double sat1, sat2, irnd, imix;
     unsigned long D,d,dts,nn, presteps, gsteps, pluneigh; 
@@ -251,10 +255,11 @@ int main(int argc, char**argv)
     }
     
     std::valarray<double> com(d); com=0.0;
+    std::cout.precision(8); std::cout.setf(std::ios::scientific);
     if (fcenter)
     { for (int i=0; i<lplist.size(); i++) com+=lplist[i]; com*=1.0/lplist.size(); }
     for (int i=0; i<lplist.size(); i++)
-    {
+    {    
         for (int h=0; h<d; h++)  std::cout<<lplist[i][h]-com[h]<<" ";
         if (fveryverb) 
         {

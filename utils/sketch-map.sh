@@ -48,6 +48,7 @@ for ((ITER=1; ITER<=$MAXITER; ITER++)); do
    MDERR=$NERR
    echo "Mixing in $IMIX"
    if [ ! -e $FILELD.gmds_$ITER ]; then
+      echo "Now running $SMAP -vv -D $HD -d $LD $PI $DOW -center -preopt 50 -grid $GW,21,201 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp -gopt 3 -imix $IMIX < $FILEHD > $FILELD.gmds_$ITER 2>>log"
       $SMAP -vv -D $HD -d $LD $PI $DOW -center -preopt 50 -grid $GW,21,201 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp -gopt 3 -imix $IMIX < $FILEHD > $FILELD.gmds_$ITER 2>>log
    fi
    grep -v "#" $FILELD.gmds_$ITER | awk '{print $1, $2}' > tmp

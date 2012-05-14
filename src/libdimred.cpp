@@ -404,7 +404,9 @@ void NLDRProjection::set_vars(const std::valarray<double>& rv)
     for (unsigned long i=0; i<n; ++i)
     {
         //!TODO TEST must check and implement curse-of-dimensionality correction
-        v1=p.row(i); v1-=vx; ld=0.0; for (unsigned long j=0; j<d; ++j) ld+=v1[j]*v1[j]; ld=sqrt(ld);
+        v1=p.row(i); v1-=vx; ld=0.0; for (unsigned long j=0; j<d; ++j) ld+=v1[j]*v1[j]; 
+        
+        ld=sqrt(ld);
         
         if (ld<=0.0) continue;
         opts.tfunL.fdf(ld,lfd,ldfd);
@@ -1106,7 +1108,7 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
         pgrad.resize(rv.size());
     }
     coords=rv;
-    
+    //std::cerr<<"finding distances\n";
     FMatrix<double> ld(n,n); ld*=0.0;
     for (unsigned long i=0; i<n; i++)
         for (unsigned long j=0; j<i; j++)
@@ -1120,6 +1122,9 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
     for (unsigned long i=0; i<n; i++)
         for (unsigned long j=0; j<i; j++) 
     { 
+    
+    
+       // std::cerr<<i<<","<<j<<" : "<<ld(i,j)<<"\n";
         tfun.fdf(ld(i,j),fld,dfld);
         
         wij=weights[i]*weights[j]*dcw;
@@ -1205,7 +1210,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
         for (unsigned long j=0; j<i; j++) {
             chiobj.fhd(i,j)=chiobj.fhd(j,i)=opts.metric->dist(&(const_cast<FMatrix<double>&>(points)(i,0)), &(const_cast<FMatrix<double>&>(points)(j,0)), proj.D); 
         }
-    }
+    }    
     chiobj.hd=chiobj.fhd; //!TEST
     
     if (opts.ipoints.size()==0)
@@ -1221,11 +1226,19 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
     for (unsigned long i=0; i<proj.n; i++) 
         for (unsigned long h=0; h<proj.d; h++) pcoords[i*proj.d+h]=proj.p(i,h);
 
+    std::cerr<<"Setting up chiobj\n";
+    
     for (unsigned long i=0; i<proj.n; i++)
-        for (unsigned long j=0; j<i; j++)  { chiobj.fhd(j,i)=chiobj.fhd(i,j)=opts.tfunH.f(chiobj.fhd(i,j));
+        for (unsigned long j=0; j<i; j++)  { 
+        chiobj.fhd(j,i)=chiobj.fhd(i,j)=opts.tfunH.f(chiobj.fhd(i,j));
        // std::cerr<<chiobj.hd(i,j)<<", "<<chiobj.fhd(i,j)<<", "<<chiobj.dfd(chiobj.hd(i,j))<<"\n"; 
         }
+        
+        
+     std::cerr<<"Setting up pcoords\n";
     chiobj.set_vars(pcoords); 
+
+     std::cerr<<"Setting up iteroptions\n";
     IterOptions<double,2> iops=IterOptions<double,2>( 
                                opts.steps,
                                fixarray<double,2>(1e-5, 1e-5),fixarray<double,2>(0.,0.),
@@ -1238,6 +1251,8 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
     if (saop.steps==0) saop.steps=opts.steps; 
     
     std::valarray<double> rpos; double rvalue;
+    
+    std::cerr<<"Starting optimization\n";
     
     if (opts.global)
     {
