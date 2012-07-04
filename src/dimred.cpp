@@ -255,7 +255,7 @@ int main(int argc, char**argv)
     }
     
     std::valarray<double> com(d); com=0.0;
-    std::cout.precision(8); std::cout.setf(std::ios::scientific);
+    std::cout.precision(12); std::cout.setf(std::ios::scientific);
     if (fcenter)
     { for (int i=0; i<lplist.size(); i++) com+=lplist[i]; com*=1.0/lplist.size(); }
     for (int i=0; i<lplist.size(); i++)

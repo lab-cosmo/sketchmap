@@ -125,6 +125,7 @@ int main(int argc, char**argv)
     nlproj.set_points(HP,lp,nw);
     
     std::valarray<double> NP(D), PP(D), pp(d);
+    std::cout.precision(12); std::cout.setf(std::ios::scientific);
     unsigned long ip=0;
     while (std::cin.good())
     {
