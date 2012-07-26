@@ -184,7 +184,7 @@ public:
 class NLDRProjection {
     friend void NLDRLLE(FMatrix<double>& points, NLDRProjection& proj, const NLDRLLEOptions& opts, NLDRLLEReport& report);
     friend void NLDRMDS(FMatrix<double>& points, NLDRProjection& proj, const NLDRMDSOptions& opts, NLDRMDSReport& report, const FMatrix<double>& outd);
-    friend void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptions& opts, NLDRITERReport& report);
+    friend void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptions& opts, NLDRITERReport& report,  const FMatrix<double>& outd);
     friend void NLDRIProj(const NLDRProjection& proj, const std::valarray<double>& X, std::valarray<double>& x); 
     
 private:
@@ -286,7 +286,7 @@ public:
 };
 
 
-enum NLDRIterMin { NLDRSimplex, NLDRCGradient, NLDRAnnealing };
+enum NLDRIterMin { NLDRSimplex, NLDRCGradient, NLDRAnnealing, NLDRParatemp };
 
 class NLDRITEROptions
 {
@@ -300,6 +300,7 @@ public:
     NLDRIterMin minmode;
     AnnealingOptions saopts;
     ConjGradOpts cgopts;
+    ParaOptions ptopts;
     double simplex_spread, simplex_mult;
     
     NLDRITEROptions() : tfunH(NLDRIdentity), tfunL(NLDRIdentity), metric(NULL), verbose(false), 
@@ -308,6 +309,9 @@ public:
                    {
                        saopts.temp_init=1e-4; saopts.temp_final=1e-20;
                        saopts.steps=0; saopts.mc_step=1e-1; saopts.adapt=1.05; saopts.drnd=0.2;
+
+                       ptopts.temp_init=5e-7; ptopts.temp_final=2e-9;  ptopts.temp_factor=2.0; 
+                       ptopts.steps=0; ptopts.replica=12; ptopts.dt=1.5; ptopts.tau=15;
 
                        cgopts.maxiter=0;
                        cgopts.linesearch.maxiter=5; cgopts.linesearch.lstol=5e-10; 
@@ -339,7 +343,7 @@ public:
 
 void NLDRLLE(FMatrix<double>& points, NLDRProjection& proj, const NLDRLLEOptions& opts, NLDRLLEReport& report);
 void NLDRMDS(FMatrix<double>& points, NLDRProjection& proj, const NLDRMDSOptions& opts, NLDRMDSReport& report, const FMatrix<double>& outd=FMatrix<double>(0,0));
-void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptions& opts, NLDRITERReport& report);
+void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptions& opts, NLDRITERReport& report, const FMatrix<double>& outd=FMatrix<double>(0,0));
 
 void NLDRIProj(const NLDRProjection& proj, const std::valarray<double>& X, std::valarray<double>& x);
 }; //ends namespace toolbox

@@ -18,7 +18,7 @@ void banner()
     std::cerr
             << " USAGE: dimred -D hi-dim -d low-dim -pi period [-v|-vv] [-h] [-w] [-init file]  \n"
             << "               [-center] [-plumed] [-fun-hd s,a,b] [-fun-ld s,a,b] [-imix mix]  \n"
-            << "               [-preopt steps] [-grid gw,g1,g2] [-gopt steps]                   \n"            
+            << "               [-preopt steps] [-grid gw,g1,g2] [-gopt steps] [-similarity]     \n"            
             << "                                                                                \n"
             << " compute the dimensionality reduction of data points given in input. The high   \n"
             << " dimension is set by -D option, and the projection is performed down to the     \n"
@@ -28,6 +28,9 @@ void banner()
             << " X1_1, X1_2, ... X1_D [w1]                                                      \n"
             << " X2_1, X2_2, ... X2_D [w2]                                                      \n"
             << " where wi's are optional weights to be given if -w is chosen.                   \n"
+            << " One can also provide the similarity matrix in the input [-similarity], then    \n"
+            << " D must be the number of points and data must be the distance matrix itself:    \n"
+            << " d11 d12 ... d1D\n d21 d22 ... d2D\n ...                                        \n"
             << " Verbosity of output is controlled by -v and -vv options, and optionally        \n"
             << " output can be made compatible with the PLUMED implementation of bespoke CVs    \n"
             << " by the -plumed option. -center weight-centers points around the origin.        \n"
@@ -51,10 +54,11 @@ int main(int argc, char**argv)
     CLParser clp(argc,argv);    
     double sat1, sat2, irnd, imix;
     unsigned long D,d,dts,nn, presteps, gsteps, pluneigh; 
-    double sm, neps,peri,speri; bool fverb, fveryverb, fplumed, fhelp,  fweight, fcenter;
+    double sm, neps,peri,speri; bool fverb, fveryverb, fplumed, fhelp,  fweight, fcenter, fsimil;
     std::string fmds, finit, fdhd, fdld, gpars, itermode;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
             clp.getoption(d,"d",(unsigned long) 2) &&
+            clp.getoption(fsimil,"similarity",false) &&            
             clp.getoption(peri,"pi",0.0) &&
             clp.getoption(speri,"spi",0.0) &&
             clp.getoption(fverb,"v",false) &&  
@@ -84,6 +88,7 @@ int main(int argc, char**argv)
     std::vector<std::vector<double> > plist; std::vector<double> point(D), weights;
     
     // reads points from standard input
+    
     while (std::cin.good())
     {
         double nw;
@@ -91,7 +96,7 @@ int main(int argc, char**argv)
         if (fweight) std::cin>>nw; else nw=1.0; 
         if (std::cin.good()) { plist.push_back(point); weights.push_back(nw); }
     }
-
+        
     std::valarray<std::valarray<double> > hplist, lplist; 
     FMatrix<double> mpoints(plist.size(),D);
     for (int i=0; i<plist.size(); i++) for (int j=0; j<D; j++) mpoints(i,j)=plist[i][j];
@@ -100,7 +105,7 @@ int main(int argc, char**argv)
     NLDRMetricPBC nperi; NLDRMetricEuclid neuclid; NLDRMetricSphere nsphere;
     nperi.periods.resize(D); nperi.periods=peri;
     nsphere.periods.resize(D); nsphere.periods=speri;
-            
+         
     NLDRMDSReport mdsreport;
     NLDRMDSOptions mdsopts; mdsopts.lowdim=d; mdsopts.verbose=fveryverb;
     if (peri==0.0 && speri==0.0) mdsopts.metric=&neuclid;
@@ -143,6 +148,9 @@ int main(int argc, char**argv)
     if (itermode=="conjgrad") iteropts.minmode=NLDRCGradient;
     else if (itermode=="simplex") iteropts.minmode=NLDRSimplex;
     else if (itermode=="anneal") iteropts.minmode=NLDRAnnealing;
+    else if (itermode=="paratemp") iteropts.minmode=NLDRParatemp;
+
+    std::cerr<<"hey "<<itermode<<" "<<iteropts.minmode<<"\n";
     iteropts.saopts.temp_init=sat1; iteropts.saopts.temp_final=sat2;
     iteropts.weights.resize(weights.size()); for (unsigned long i=0; i<weights.size();++i) iteropts.weights[i]=weights[i]; iteropts.imix=imix;
     
@@ -161,18 +169,20 @@ int main(int argc, char**argv)
     else
     {
       //initialize from classical MDS
-      NLDRMDS(mpoints,nlproj,mdsopts,mdsreport);
+      if (fsimil) NLDRMDS(mpoints,nlproj,mdsopts,mdsreport, mpoints);
+      else NLDRMDS(mpoints,nlproj,mdsopts,mdsreport);
       nlproj.get_points(hplist,lplist);
       
       for (unsigned long i=0; i<mpoints.rows(); i++)
          for (unsigned long j=0; j<d; j++) iteropts.ipoints(i,j)=lplist[i][j];
     }
     
-    iteropts.global=false; iteropts.steps=presteps;
+    iteropts.global=false; iteropts.steps=presteps; 
     if (presteps>0) 
     {  
-      NLDRITER(mpoints,nlproj,iteropts,iterreport);
-      nlproj.get_points(hplist,lplist);  
+       if (fsimil) NLDRITER(mpoints,nlproj,iteropts,iterreport, mpoints);
+       else NLDRITER(mpoints,nlproj,iteropts,iterreport);
+       nlproj.get_points(hplist,lplist);  
     }
         
     if (doglobal)
@@ -180,7 +190,8 @@ int main(int argc, char**argv)
       iteropts.global=true; iteropts.steps=gsteps; 
       for (unsigned long i=0; i<mpoints.rows(); i++)
          for (unsigned long j=0; j<d; j++) iteropts.ipoints(i,j)=lplist[i][j];      
-      NLDRITER(mpoints,nlproj,iteropts,iterreport);
+      if (fsimil) NLDRITER(mpoints,nlproj,iteropts,iterreport, mpoints);
+      else NLDRITER(mpoints,nlproj,iteropts,iterreport);
       nlproj.get_points(hplist,lplist);        
     }
     

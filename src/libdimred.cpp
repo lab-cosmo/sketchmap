@@ -1130,7 +1130,7 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
         wij=weights[i]*weights[j]*dcw;
         tw+=wij;
         pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *wij;
-        gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j))) /ld(i,j)*wij;
+        gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/ld(i,j) *wij;
 
         for (unsigned long h=0; h<d; h++)
         {
@@ -1139,7 +1139,7 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
         }
     }
     pval*=1.0/tw;
-    pgrad*=1.0/tw;
+    pgrad*=-2.0/tw;
 }
 
 void NLDRITERChi::get_value(double& rv) const
@@ -1188,7 +1188,7 @@ void compute_chi1(const std::valarray<double>& x, const std::valarray<double>& w
 }
 
 
-void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptions& opts, NLDRITERReport& report)
+void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptions& opts, NLDRITERReport& report, const FMatrix<double>& outd)
 {
         
     if (opts.metric==NULL) ERROR("Uninitialized metric pointer\n");
@@ -1203,14 +1203,22 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
     std::valarray<double> pcoords(proj.n*proj.d); 
     FMatrix<double> distHD(chiobj.fhd), distLD(proj.n,proj.n);
     
-    std::cerr<<"Building distance matrix\n";
-    for (unsigned long i=0; i<proj.n; i++)
+    
+    if (outd.cols()==proj.n)
+    {  chiobj.fhd=outd; }
+    else
     {
-        chiobj.fhd(i,i)=0;
-        for (unsigned long j=0; j<i; j++) {
-            chiobj.fhd(i,j)=chiobj.fhd(j,i)=opts.metric->dist(&(const_cast<FMatrix<double>&>(points)(i,0)), &(const_cast<FMatrix<double>&>(points)(j,0)), proj.D); 
-        }
-    }    
+       //distance data provided in input
+       std::cerr<<"Building distance matrix\n";
+       for (unsigned long i=0; i<proj.n; i++)
+       {
+           chiobj.fhd(i,i)=0;
+           for (unsigned long j=0; j<i; j++) {
+               chiobj.fhd(i,j)=chiobj.fhd(j,i)=opts.metric->dist(&(const_cast<FMatrix<double>&>(points)(i,0)), &(const_cast<FMatrix<double>&>(points)(j,0)), proj.D); 
+           }
+       }    
+    }
+
     chiobj.hd=chiobj.fhd; //!TEST
     
     if (opts.ipoints.size()==0)
@@ -1246,9 +1254,12 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
     double ferr; 
     
     AnnealingOptions saop(opts.saopts);
+    ParaOptions ptop(opts.ptopts);    
     ConjGradOpts cgop(opts.cgopts);
     if (cgop.maxiter==0) cgop.maxiter=opts.steps; 
     if (saop.steps==0) saop.steps=opts.steps; 
+    if (ptop.steps==0) ptop.steps=opts.steps; 
+    
     
     std::valarray<double> rpos; double rvalue;
     
@@ -1327,6 +1338,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
             proj.p(ip,0)=minx[0]; proj.p(ip,1)=minx[1];
             
             std::ofstream restf((std::string("global.")+int2str(ip)).c_str());
+            restf.precision(12);
             for (unsigned long i=0; i<proj.n; i++) 
             {  restf<<proj.p(i,0)<<" "<<proj.p(i,1)<<"\n"; }
             restf.close();
@@ -1348,7 +1360,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
             for (unsigned long i=0; i<proj.n; i++) 
                 for (unsigned long h=0; h<proj.d; h++) pcoords[i*proj.d+h]=proj.p(i,h);
             min_conjgrad(chiobj,pcoords,rpos, rvalue, cgop );
-            chiobj.get_vars(pcoords);
+            chiobj.get_vars(pcoords); 
             for (unsigned long i=0; i<proj.n; i++) 
                 for (unsigned long h=0; h<proj.d; h++) proj.p(i,h)=pcoords[i*proj.d+h];
         }
@@ -1366,6 +1378,9 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
             case NLDRAnnealing:
                 sim_annealing(chiobj,pcoords,rpos,rvalue,saop);
                 break;
+            case NLDRParatemp:
+                para_temp(chiobj,pcoords,rpos,rvalue,ptop);
+                break;                
         }
     }
     
