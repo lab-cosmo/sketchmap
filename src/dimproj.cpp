@@ -62,6 +62,9 @@ int main(int argc, char**argv)
     if (fP=="" || fp=="") ERROR("Hi-dim and low-dim points must be provided by the -P and -p options"); 
    
     std::ifstream sP(fP.c_str()), sp(fp.c_str()); 
+    if (sP.fail()) ERROR("Unable to open high-dim file.");
+    if (sp.fail()) ERROR("Unable to open low-dim file.");
+
     // reads points from standard input
     FMatrix<double> HP, lp;
     std::vector<std::vector<double> > plist; std::vector<double> point(D), pweight;
