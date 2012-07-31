@@ -311,7 +311,7 @@ public:
                        saopts.steps=0; saopts.mc_step=1e-1; saopts.adapt=1.05; saopts.drnd=0.2;
 
                        ptopts.temp_init=5e-7; ptopts.temp_final=2e-9;  ptopts.temp_factor=2.0; 
-                       ptopts.steps=0; ptopts.replica=12; ptopts.dt=1.5; ptopts.tau=15;
+                       ptopts.steps=0; ptopts.replica=6; ptopts.dt=1.0; ptopts.tau=10;
 
                        cgopts.maxiter=0;
                        cgopts.linesearch.maxiter=5; cgopts.linesearch.lstol=5e-10; 

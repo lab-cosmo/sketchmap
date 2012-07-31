@@ -52,10 +52,10 @@ int main(int argc, char**argv)
    // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
     CLParser clp(argc,argv);    
-    double sat1, sat2, irnd, imix;
-    unsigned long D,d,dts,nn, presteps, gsteps, pluneigh; 
+    double irnd, imix, ptfac, ptdt, pttau;
+    unsigned long D,d,dts,nn, presteps, gsteps, pluneigh, npt; 
     double sm, neps,peri,speri; bool fverb, fveryverb, fplumed, fhelp,  fweight, fcenter, fsimil;
-    std::string fmds, finit, fdhd, fdld, gpars, itermode;
+    std::string fmds, finit, fdhd, fdld, gpars, itermode, tempopts;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
             clp.getoption(d,"d",(unsigned long) 2) &&
             clp.getoption(fsimil,"similarity",false) &&            
@@ -76,8 +76,11 @@ int main(int argc, char**argv)
             clp.getoption(finit,"init",std::string("")) &&
             clp.getoption(irnd,"randomize",0.0) &&
             clp.getoption(imix,"imix",0.0) &&
-            clp.getoption(sat1,"sat1",0.1) &&
-            clp.getoption(sat2,"sat2",1e-8) &&
+            clp.getoption(tempopts,"sa-temp",std::string("0.1,100")) &&
+            clp.getoption(ptfac,"pt-factor", 2.0) &&
+            clp.getoption(npt,"pt-replica",(unsigned long) 4) &&
+            clp.getoption(ptdt,"pt-dt", 1.0) &&
+            clp.getoption(pttau,"pt-tau", 10.0) &&
 
             clp.getoption(sm,"smooth",-1e-3) &&  
             clp.getoption(nn,"neigh",(unsigned long) 4) &&
@@ -151,7 +154,12 @@ int main(int argc, char**argv)
     else if (itermode=="paratemp") iteropts.minmode=NLDRParatemp;
 
     std::cerr<<"hey "<<itermode<<" "<<iteropts.minmode<<"\n";
-    iteropts.saopts.temp_init=sat1; iteropts.saopts.temp_final=sat2;
+    std::valarray<double> sat(0.02); csv2floats(tempopts,sat);
+    iteropts.saopts.temp_init=sat[1]; iteropts.saopts.temp_final=sat[2];
+    iteropts.ptopts.temp_init=sat[1]; iteropts.ptopts.temp_final=sat[2]; 
+    iteropts.ptopts.temp_factor=ptfac; iteropts.ptopts.replica=npt;
+    iteropts.ptopts.dt=ptdt;  iteropts.ptopts.tau=pttau;
+
     iteropts.weights.resize(weights.size()); for (unsigned long i=0; i<weights.size();++i) iteropts.weights[i]=weights[i]; iteropts.imix=imix;
     
     iteropts.ipoints.resize(mpoints.rows(),d);
