@@ -154,9 +154,10 @@ int main(int argc, char**argv)
     else if (itermode=="paratemp") iteropts.minmode=NLDRParatemp;
 
     std::cerr<<"hey "<<itermode<<" "<<iteropts.minmode<<"\n";
-    std::valarray<double> sat(0.02); csv2floats(tempopts,sat);
-    iteropts.saopts.temp_init=sat[1]; iteropts.saopts.temp_final=sat[2];
-    iteropts.ptopts.temp_init=sat[1]; iteropts.ptopts.temp_final=sat[2]; 
+    std::valarray<double> sat(0.0,2); csv2floats(tempopts,sat);
+    std::cerr<<" simulated annealing ops: "<<sat<<"\n";
+    iteropts.saopts.temp_init=sat[0]; iteropts.saopts.temp_final=sat[1];
+    iteropts.ptopts.temp_init=sat[0]; iteropts.ptopts.temp_final=sat[1]; 
     iteropts.ptopts.temp_factor=ptfac; iteropts.ptopts.replica=npt;
     iteropts.ptopts.dt=ptdt;  iteropts.ptopts.tau=pttau;
 
