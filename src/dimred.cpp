@@ -193,7 +193,8 @@ int main(int argc, char**argv)
        else NLDRITER(mpoints,nlproj,iteropts,iterreport);
        nlproj.get_points(hplist,lplist);  
     }
-        
+     
+    std::cerr<<"iterative done\n"    ;
     if (doglobal)
     {
       iteropts.global=true; iteropts.steps=gsteps; 
@@ -203,7 +204,8 @@ int main(int argc, char**argv)
       else NLDRITER(mpoints,nlproj,iteropts,iterreport);
       nlproj.get_points(hplist,lplist);        
     }
-    
+
+    std::cerr<<"printing out\n"    ;    
     if (fplumed)
     {
         std::cout << "NLANDMARKS " <<lplist.size()<<"\n\n";
