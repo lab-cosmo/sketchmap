@@ -62,6 +62,9 @@ int main(int argc, char**argv)
     if (fP=="" || fp=="") ERROR("Hi-dim and low-dim points must be provided by the -P and -p options"); 
    
     std::ifstream sP(fP.c_str()), sp(fp.c_str()); 
+    if (sP.fail()) ERROR("Unable to open high-dim file.");
+    if (sp.fail()) ERROR("Unable to open low-dim file.");
+
     // reads points from standard input
     FMatrix<double> HP, lp;
     std::vector<std::vector<double> > plist; std::vector<double> point(D), pweight;
@@ -100,21 +103,41 @@ int main(int argc, char**argv)
     else { opts.nopts.ometric=&nsphere; std::cerr<<"Spherical geodesic distances\n"; }
     
     std::valarray<double> tfpars;     
-    
+    std::valarray<double> fhdpars(0.0,3), fldpars(0.0,3), fgrid(0.0,3);    
     if (fdhd=="identity")
     { tfpars.resize(0); opts.tfunH.set_mode(NLDRIdentity,tfpars); }
     else 
     {
-      csv2floats(fdhd,tfpars); if (tfpars.size()<3) ERROR("-fun-hd argument must be of the form sigma,a,b")
-      opts.tfunH.set_mode(NLDRXSigmoid,tfpars); 
+      csv2floats(fdhd,tfpars);  fhdpars=tfpars; 
+      std::cerr<<"high-dim pars"<<tfpars<<"\n";     
+      if (tfpars.size()==2) 
+      {
+        opts.tfunH.set_mode(NLDRGamma,tfpars);       
+      }
+      else if (tfpars.size()==3) 
+      {
+        opts.tfunH.set_mode(NLDRXSigmoid,tfpars);     
+      }
+      else
+      {  ERROR("-fun-hd argument must be of the form sigma,a,b or sigma,n");  }
     }
     
     if (fdld=="identity")
     { tfpars.resize(0); opts.tfunL.set_mode(NLDRIdentity,tfpars); }
     else 
     {
-      csv2floats(fdld,tfpars); if (tfpars.size()<3) ERROR("-fun-ld argument must be of the form sigma,a,b")
-      opts.tfunL.set_mode(NLDRXSigmoid,tfpars); 
+      csv2floats(fdld,tfpars); fldpars=tfpars;      
+      std::cerr<<"lo-dim pars"<<tfpars<<"\n";     
+      if (tfpars.size()==2) 
+      {
+        opts.tfunL.set_mode(NLDRGamma,tfpars);  
+      }
+      else if (tfpars.size()==3) 
+      {
+        opts.tfunL.set_mode(NLDRXSigmoid,tfpars);
+      }
+      else
+      {  ERROR("-fun-ld argument must be of the form sigma,a,b or sigma,n");  }
     }
     
     csv2floats(gpars,tfpars); if (tfpars.size()<3) ERROR("-grid argument requires gw,g1,g2")    
@@ -125,6 +148,7 @@ int main(int argc, char**argv)
     nlproj.set_points(HP,lp,nw);
     
     std::valarray<double> NP(D), PP(D), pp(d);
+    std::cout.precision(12); std::cout.setf(std::ios::scientific);
     unsigned long ip=0;
     while (std::cin.good())
     {

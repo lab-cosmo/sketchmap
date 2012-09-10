@@ -10,6 +10,7 @@
 #include "rndgen.hpp"
 #include <iomanip>
 #include "ioparser.hpp"
+#include <fstream>
 
 namespace toolbox {
 /***********************************************************************
@@ -721,7 +722,7 @@ void min_conjgrad (
         ls.dir.resize(sz); 
     
         f.set_vars(pos); 
-        f.get_gradient(ls.dir); ls.dir*=-1.0;
+        f.get_gradient(ls.dir); //ls.dir*=-1.0;
     }
 
     og=ls.dir;
@@ -730,7 +731,7 @@ void min_conjgrad (
         
         min_linesearch(f,pos,npos,fn,lsstep,ls);
         f.set_vars(npos); 
-        f.get_gradient(g); g*=-1.0;
+        f.get_gradient(g); //g*=-1.0;
         
         gamma=gg=0.0; for (unsigned long i=0; i<sz; ++i) { gg+=og[i]*og[i]; gamma+=(g[i]-og[i])*g[i]; } gamma/=gg;
         
@@ -747,6 +748,292 @@ void min_conjgrad (
     op.linesearch.dir.resize(sz); op.linesearch.dir=ls.dir;  op.linesearch.istep=ls.istep;
     rpos=pos; rvalue=fn;
 }
+
+
+/***********************************************************************
+PARALLEL TEMPERING ANNEALING MINIMIZER
+************************************************************************/
+typedef struct _ParaOpts {
+    double temp_init, temp_final, temp_factor;
+    double dt, tau, tau_avg;
+    unsigned long steps, replica;
+    _ParaOpts(): temp_init(1.), temp_final(1e-3), temp_factor(1.5), steps(10000), replica(5), dt(0.1), tau(100.0),
+                 tau_avg(100.0) {}
+} ParaOptions;
+
+
+template<class FCLASS, class RNG>
+void para_temp (
+        FCLASS& f,
+        const std::valarray<double> & init_vars,
+        std::valarray<double>& rpos, double& rvalue,
+        const ParaOptions po=ParaOptions(),
+        RNG rngen=RNG()
+        )
+{
+    unsigned long nv=init_vars.size(), nr=po.replica;
+    double swp, nrgmin;
+    std::valarray<double> temp(nr), nrg(nr), kin(nr), cns(nr), pmin(nv), pswp(nv), vdir(nv), wte(nr), wte_dw(nr), wte_up(nr);
+    std::valarray<std::valarray<double> > pos(init_vars,nr), vel(init_vars,nr), grad(std::valarray<double>(nv),nr);
+    std::valarray<std::vector<double> >  
+      wte_history(std::vector<double>(0),nr), wte_heights(std::vector<double>(0),nr), wte_widths(std::vector<double>(0),nr);
+    std::valarray<double> wte_gamma(po.temp_factor,nr);
+    std::valarray<long> ireplica(nr); std::valarray<double> vreplica(nr);
+    double wtev, wtedv;
+    
+    RndGaussian<double,RNG> grngen(rngen());
+    
+    //initialize replica temperatures
+    double c1, c2, c3, c4;
+
+    /* we compute "smart" running averages with exponentially decaying memory: let f=exp(-dt/tau_m)
+      then at each time step tot<--f*tot+y   n<--f*n+1 so after T steps, we will have
+      tot=sum_i<T y_i exp(-dt*i/tau_m) ; n=sum_i<T exp(-dt*i/tau_m) 
+      and tot/n will yield a sort of running average of the quantity y
+    */
+    std::valarray<double> totv(0.0,nr), totv2(0.0,nr);  double totn=0.0, totf=exp(-po.dt/po.tau_avg);
+ 
+//    temp[0]=po.temp_init; for (unsigned long i=1; i<nr; ++i) temp[i]=temp[i-1]*po.temp_factor;
+    temp[0]=po.temp_init; for (unsigned long i=1; i<nr; ++i) temp[i]=temp[i-1]*(1+po.temp_factor/sqrt(nv));
+    double ts=std::exp(log(po.temp_final/po.temp_init)/po.steps);
+
+    std::cerr<<"para temp optimizer. steps: "<<po.steps<<" replica: "<<nr<<"\n";
+    std::cerr<<"temperatures "<<temp;
+    std::cerr<<"scaling "<<ts<<std::endl;
+
+    std::ofstream lowr, highr, ptmd, ptwte, ptreplica; 
+    cns=0.0; 
+    
+    ptmd.open("ptmd.dat");  ptwte.open("ptwte.dat"); ptreplica.open("ptreplica.dat"); 
+    double minv, maxv;
+
+//    std::cerr<<"TESTING GRADIENT\n";
+//       f.set_vars(pos[0]);
+//       f.get_value(nrg[0]);
+//       f.get_gradient(grad[0]);
+//   for (unsigned long i=0; i<nv; ++i)  
+//    {
+//      
+//      pos[1][i]=pos[0][i]+1e-4; 
+//       f.set_vars(pos[1]);
+//       f.get_value(nrg[1]);
+//      std::cerr<<"coord: "<<i<<" analytical: "<<grad[0][i]<<" numeric: "<<(nrg[1]-nrg[0])/1e-4<<"\n";
+//      
+//      pos[1][i]=pos[0][i];
+//    }
+
+    double vx=0.0, vy=0.0; 
+    for (unsigned long ir=0; ir<nr; ++ir) 
+    { 
+       c2=sqrt(temp[ir]);  
+       for (unsigned long i=0; i<nv; ++i) vel[ir][i]=c2*rngen(); 
+       vx=vy=0.0; for (unsigned long i=0; i<nv; i+=2) {vx+=vel[ir][i]; vy+=vel[ir][i+1]; }
+       vx*=2.0/nv;  vy*=2.0/nv; for (unsigned long i=0; i<nv; i+=2) {vel[ir][i]-=vx; vel[ir][i+1]-=vy; }
+
+       f.set_vars(pos[ir]);
+       f.get_value(nrg[ir]);
+       f.get_gradient(grad[ir]);
+       totv[ir]=nrg[ir]; totv2[ir]=nrg[ir]*nrg[ir]; totn=1.0;
+       ireplica[ir]=ir;
+
+    }
+    minv=maxv=nrg[0];
+    nrgmin=nrg[0]; pmin=pos[0]; wtedv=0.0;
+    for (unsigned long is=0; is< po.steps; ++is)
+    {    
+        std::cerr<<"step: "<<std::setw(6)<<is<<" t0: "<<std::setw(8)<<temp[0]<< "  ";
+        ptmd<<is<<" ";     ptreplica<<is<<" ";     
+        totn=totf*totn+1.0;
+        for (unsigned long ir=0; ir<nr; ++ir)
+        {
+            // does one MD step ( no trotter splitting, since we don't really care that much about the MD )
+            c1=exp(-0.5*po.dt/po.tau), c2=sqrt(temp[ir]*(1.0-c1*c1)); 
+            c3=ts, c4=sqrt(temp[ir]*(1.0-c3*c3)); 
+            
+            kin[ir]=0.0;  for (unsigned long i=0; i<nv; ++i) kin[ir]+=vel[ir][i]*vel[ir][i]; kin[ir]*=0.5;
+            cns[ir]+=kin[ir];            
+            
+            //BDP thermostat...
+            vdir=vel[ir]*sqrt(0.5/kin[ir]); 
+            vel[ir]*=c1;  for (unsigned long i=0; i<nv; ++i) vel[ir][i]+=c2*grngen();  //white noise step
+            kin[ir]=0.0;  for (unsigned long i=0; i<nv; ++i) kin[ir]+=vel[ir][i]*vel[ir][i]; // project on the old velocity direction
+            vel[ir]=vdir*sqrt(kin[ir]); kin[ir]*=0.5;
+            cns[ir]-=kin[ir];            
+            //AND ALSO A BIT OF WN LANGEVIN...
+            cns[ir]+=kin[ir];
+            vel[ir]*=c3;  for (unsigned long i=0; i<nv; ++i) vel[ir][i]+=c4*grngen();  //white noise step            
+            vx=vy=0.0; for (unsigned long i=0; i<nv; i+=2) {vx+=vel[ir][i]; vy+=vel[ir][i+1]; }
+            vx*=2.0/nv;  vy*=2.0/nv; for (unsigned long i=0; i<nv; i+=2) {vel[ir][i]-=vx; vel[ir][i+1]-=vy; } // followed by com removal
+            cns[ir]-=kin[ir];
+
+            vel[ir]+=grad[ir]*(1.0+wtedv)*(-po.dt*0.5);
+            pos[ir]+=vel[ir]*po.dt;
+            f.set_vars(pos[ir]);
+            f.get_value(nrg[ir]);
+            f.get_gradient(grad[ir]);
+
+            //wte evaluation
+            wtev=wtedv=0.0; double dwte;
+            //also evaluate wte[ir](nrg[ir-1])
+            if (ir>1) for (unsigned long i=0; i<wte_heights[ir].size(); ++i) 
+            {  dwte=(nrg[ir-1]-wte_history[ir][i])/wte_widths[ir][i]; dwte=exp(-dwte*dwte)*wte_heights[ir][i];  wtev+=dwte;  }            
+            if (ir>1) wte_up[ir-1]=wtev;
+            //also evaluate wte[ir-1](nrg[ir])
+            wtev=0.0;
+            if (ir>1) for (unsigned long i=0; i<wte_heights[ir-1].size(); ++i) 
+            {  dwte=(nrg[ir]-wte_history[ir-1][i])/wte_widths[ir-1][i]; dwte=exp(-dwte*dwte)*wte_heights[ir-1][i];  wtev+=dwte;  }            
+            wte_dw[ir]=wtev;
+
+            wtev=0.0;
+            for (unsigned long i=0; i<wte_heights[ir].size(); ++i) 
+            {   
+               dwte=(nrg[ir]-wte_history[ir][i])/wte_widths[ir][i]; dwte=exp(-dwte*dwte)*wte_heights[ir][i]; 
+               wtev+=dwte; wtedv+=dwte*(-2.0)*(nrg[ir]-wte_history[ir][i])/(wte_widths[ir][i]*wte_widths[ir][i]);
+               wte_heights[ir][i]*=ts;  //must scale down hills, because we are also annealing!
+            }            
+            wte[ir]=wtev;
+
+            cns[ir]-=wtev*(1.0-ts);
+            
+
+            if (nrg[ir]<nrgmin) 
+            { 
+               nrgmin=nrg[ir]; pmin=pos[ir]; 
+               std::cerr<<"saving new min\n";
+               lowr.open("min.dat"); lowr.precision(12);
+               for (unsigned long i=0; i<nv; ++i) {lowr<<std::setw(10)<<pmin[i]<<"  "; if (i%2==1) lowr<<std::endl;}
+               lowr.close();
+            }
+            // accumulates running averages of the energy
+            totv[ir]=totf*totv[ir]+nrg[ir]; totv2[ir]=totf*totv2[ir]+nrg[ir]*nrg[ir];
+
+            vel[ir]+=grad[ir]*(1.0+wtedv)*(-po.dt*0.5);
+
+            kin[ir]=0.0;  for (unsigned long i=0; i<nv; ++i) kin[ir]+=vel[ir][i]*vel[ir][i]; kin[ir]*=0.5;
+            cns[ir]+=kin[ir];            
+
+            //BDP thermostat...
+            vdir=vel[ir]*sqrt(0.5/kin[ir]); 
+            vel[ir]*=c1;  for (unsigned long i=0; i<nv; ++i) vel[ir][i]+=c2*grngen();  //white noise step
+            kin[ir]=0.0;  for (unsigned long i=0; i<nv; ++i) kin[ir]+=vel[ir][i]*vel[ir][i]; // project on the old velocity direction
+            vel[ir]=vdir*sqrt(kin[ir]); kin[ir]*=0.5;
+            cns[ir]-=kin[ir];            
+            
+            std::cerr<<"| "<<std::setw(10)<<nrg[ir]/nv*2<<" "<<std::setw(10)<<(kin[ir]+nrg[ir]+cns[ir])/nv*2<< " |";
+
+            vreplica[ireplica[ir]]=nrg[ir];
+            ptmd<<nrg[ir]/nv*2<<" "<<kin[ir]/nv*2<<" "<<wtev<<" "<<(nrg[ir]+kin[ir]+cns[ir]+wtev)/nv*2<<" ";            
+        }
+        std::cerr<<"\n";
+
+        for (unsigned long ir=0; ir<nr; ++ir) 
+            ptreplica<<vreplica[ir]/nv*2<<" ";
+                
+        // does PT swaps
+//        if (rngen()<po.dt/(2.0*po.tau*(po.temp_factor-1.0)) ) 
+        {
+           std::cerr<<"attempting swap\n";
+           for (unsigned long ir=0; ir<nr-1; ++ir) 
+           { 
+
+               // this is not "thermodynamic" PT, since we make the energies size-intensive.
+//               if (rngen()<exp(-(nrg[ir]-nrg[ir-1])/(nv*0.5*(temp[ir-1]+temp[ir]) ))   )
+               double deltah=(1.0/temp[ir+1]-1.0/temp[ir])*(nrg[ir+1]-nrg[ir]) +
+                              (wte[ir]-wte_dw[ir+1])/nrg[ir] +
+                              (wte[ir+1]-wte_up[ir])/nrg[ir+1];
+               std::cerr<<ir<<" "<<deltah<<std::endl;
+               if (rngen()<exp(deltah)   )  
+               { 
+                  std::cerr<<"Swapping replicas "<<ir<<" and " <<ir+1<<std::endl;
+                  pswp=pos[ir];  pos[ir]=pos[ir+1];   pos[ir+1]=pswp;
+                  pswp=grad[ir]; grad[ir]=grad[ir+1]; grad[ir+1]=pswp;        
+                  swp=nrg[ir];   nrg[ir]=nrg[ir+1];   nrg[ir+1]=swp;                         
+                  cns[ir]+=nrg[ir+1]-nrg[ir];   cns[ir+1]+=nrg[ir]-nrg[ir+1];
+
+                  pswp=vel[ir]; vel[ir]=vel[ir+1]*sqrt(temp[ir]/temp[ir+1]); vel[ir+1]=pswp*sqrt(temp[ir+1]/temp[ir]);
+                  swp=kin[ir]; kin[ir]=kin[ir+1]*(temp[ir]/temp[ir+1]); kin[ir+1]=swp*(temp[ir+1]/temp[ir]); 
+                  cns[ir]+=kin[ir+1]*(temp[ir]/temp[ir+1])-kin[ir];   
+                  cns[ir+1]+=kin[ir]*(temp[ir+1]/temp[ir])-kin[ir+1];
+//                  pswp=vel[ir];   vel[ir+1]*=sqrt(temp[ir]/temp[ir+1]); vel[ir]=vel[ir+1];   pswp*=sqrt(temp[ir+1]/temp[ir]); vel[ir+1]=pswp;
+//                  cns[ir]-=kin[ir+1]*temp[ir]/temp[ir+1]-kin[ir];  cns[ir+1]-=kin[ir]*temp[ir+1]/temp[ir]-kin[ir+1];
+
+                  swp=ireplica[ir]; ireplica[ir]=ireplica[ir+1]; ireplica[ir+1]=swp;
+               }
+            }
+        }        
+      
+
+        // ADD NEW HILLS 
+        if (false && is>po.tau_avg/po.dt && rngen()<0.5*po.dt/po.tau)  // uses the same time constant as the thermostat, for a start
+        {
+            for (unsigned long ir=0; ir<nr; ++ir) 
+            {
+               if (minv>nrg[ir]) minv=nrg[ir];               if (maxv<nrg[ir]) maxv=nrg[ir];
+               std::cerr<<"ADDING NEW HILL, nrg: "<<nrg[ir]<<" temp "<<temp[ir]<<" gamma "<<wte_gamma[ir]<<"\n"; 
+               wte_history[ir].push_back(nrg[ir]); 
+               wte_heights[ir].push_back(temp[ir]*0.5*exp(-wte[ir]/(temp[ir]*(wte_gamma[ir]-1))));
+               wte_widths[ir].push_back(0.5*sqrt(totv2[ir]/totn-(totv[ir]/totn)*(totv[ir]/totn)) );
+               std::cerr<<" new height: "<<wte_heights[ir][wte_heights[ir].size()-1]
+                        << "  new width: "<<wte_widths[ir][wte_heights[ir].size()-1]<<"\n";
+               wtev=wte[ir];
+               wtev+=wte_heights[ir][wte_heights[ir].size()-1];
+               cns[ir]-=wte_heights[ir][wte_heights[ir].size()-1];  // updates conserved quantity to keep it in order
+               //TODO also updates gamma to try to attain the optimal variance 
+               unsigned long ih=wte_heights[ir].size()-1;
+               ptwte<<ih<<"  "<<wte_history[ir][ih]<<"  "<<wte_heights[ir][ih]<<"  "<<wte_widths[ir][ih]<<"  ";
+            }
+            ptwte<<std::endl;
+
+            //prints out the bias
+            lowr.open("bias.dat"); lowr.precision(7); double dwte;
+            for (double x=minv-0.5*(maxv-minv); x<maxv+0.5*(maxv-minv); x+=1e-3*(maxv-minv) )
+            {
+                lowr<<std::setw(10)<<x<<" ";
+                for (unsigned long ir=0; ir<nr; ++ir) 
+                { wtev=0.0;
+                  for (unsigned long i=0; i<wte_heights[ir].size(); ++i) 
+                 {  dwte=(x-wte_history[ir][i])/wte_widths[ir][i]; dwte=exp(-dwte*dwte)*wte_heights[ir][i];  wtev+=dwte;  }  
+                 lowr<<std::setw(10)<<wtev<<" ";
+                 }
+                  lowr<<std::endl;
+              }
+            lowr.close();
+         }
+
+        ptmd<<std::endl;        ptreplica<<std::endl;
+        if (is%100==0) {
+         std::cerr<<"printing snapshots\n";
+         for (unsigned long ir=0; ir<nr; ir++)
+         {
+            lowr.open((std::string("replica")+int2str(ir)+std::string(".dat")).c_str()); lowr.precision(12);
+            for (unsigned long i=0; i<nv; ++i) {lowr<<std::setw(10)<<pos[ir][i]<<"  "; if (i%2==1) lowr<<std::endl;}
+            lowr.close();            
+         }
+//         highr.open("highr.dat"); highr.precision(12);
+//         for (unsigned long i=0; i<nv; ++i) {highr<<std::setw(10)<<pos[nr-1][i]<<"  "; if (i%2==1) highr<<std::endl;}
+//         highr.close();        
+        }
+        
+        temp*=ts;
+    }
+    rpos=pmin;
+    std::cerr<<"done & returning\n";    
+    f.set_vars(pmin);   //reset status to minimum position
+    f.get_value(rvalue);
+    std::cerr<<"done & returning (again)\n";        
+}
+
+template<class FCLASS>
+void para_temp (
+     FCLASS& f,
+     const std::valarray<double> & init_vars,
+     std::valarray<double>& rpos, double& rvalue,
+     const ParaOptions po=ParaOptions()
+ )
+{
+    para_temp<FCLASS,StdRndUniform >(f,init_vars,rpos,rvalue,po,StdRndUniform());
+}
+
 
 
 /***********************************************************************

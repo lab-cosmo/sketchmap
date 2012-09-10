@@ -8,6 +8,8 @@
 #include "clparser.hpp"
 #include "matrix-io.hpp"
 #include "matrix-conv.hpp"
+#include <fenv.h>
+
 
 using namespace toolbox;
 
@@ -16,7 +18,7 @@ void banner()
     std::cerr
             << " USAGE: dimred -D hi-dim -d low-dim -pi period [-v|-vv] [-h] [-w] [-init file]  \n"
             << "               [-center] [-plumed] [-fun-hd s,a,b] [-fun-ld s,a,b] [-imix mix]  \n"
-            << "               [-preopt steps] [-grid gw,g1,g2] [-gopt steps]                   \n"            
+            << "               [-preopt steps] [-grid gw,g1,g2] [-gopt steps] [-similarity]     \n"            
             << "                                                                                \n"
             << " compute the dimensionality reduction of data points given in input. The high   \n"
             << " dimension is set by -D option, and the projection is performed down to the     \n"
@@ -26,6 +28,9 @@ void banner()
             << " X1_1, X1_2, ... X1_D [w1]                                                      \n"
             << " X2_1, X2_2, ... X2_D [w2]                                                      \n"
             << " where wi's are optional weights to be given if -w is chosen.                   \n"
+            << " One can also provide the similarity matrix in the input [-similarity], then    \n"
+            << " D must be the number of points and data must be the distance matrix itself:    \n"
+            << " d11 d12 ... d1D\n d21 d22 ... d2D\n ...                                        \n"
             << " Verbosity of output is controlled by -v and -vv options, and optionally        \n"
             << " output can be made compatible with the PLUMED implementation of bespoke CVs    \n"
             << " by the -plumed option. -center weight-centers points around the origin.        \n"
@@ -44,13 +49,16 @@ void banner()
 
 int main(int argc, char**argv)
 {
+   // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+
     CLParser clp(argc,argv);    
-    double sat1, sat2, irnd, imix;
-    unsigned long D,d,dts,nn, presteps, gsteps, pluneigh; 
-    double sm, neps,peri,speri; bool fverb, fveryverb, fplumed, fhelp,  fweight, fcenter;
-    std::string fmds, finit, fdhd, fdld, gpars, itermode;
+    double irnd, imix, ptfac, ptdt, pttau;
+    unsigned long D,d,dts,nn, presteps, gsteps, pluneigh, npt; 
+    double sm, neps,peri,speri; bool fverb, fveryverb, fplumed, fhelp,  fweight, fcenter, fsimil, fwarp, fwwarp;
+    std::string fmds, finit, fdhd, fdld, gpars, itermode, tempopts;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
             clp.getoption(d,"d",(unsigned long) 2) &&
+            clp.getoption(fsimil,"similarity",false) &&            
             clp.getoption(peri,"pi",0.0) &&
             clp.getoption(speri,"spi",0.0) &&
             clp.getoption(fverb,"v",false) &&  
@@ -64,12 +72,17 @@ int main(int argc, char**argv)
             clp.getoption(presteps,"preopt",(unsigned long) 0) &&
             clp.getoption(fdhd,"fun-hd",std::string("identity")) &&
             clp.getoption(fdld,"fun-ld",std::string("identity")) &&
+            clp.getoption(fwarp,"warp",false) &&             
+            clp.getoption(fwwarp,"wwarp",false) &&                         
             clp.getoption(itermode,"imode",std::string("conjgrad")) &&
             clp.getoption(finit,"init",std::string("")) &&
             clp.getoption(irnd,"randomize",0.0) &&
             clp.getoption(imix,"imix",0.0) &&
-            clp.getoption(sat1,"sat1",0.1) &&
-            clp.getoption(sat2,"sat2",1e-8) &&
+            clp.getoption(tempopts,"sa-temp",std::string("0.1,100")) &&
+            clp.getoption(ptfac,"pt-factor", 2.0) &&
+            clp.getoption(npt,"pt-replica",(unsigned long) 4) &&
+            clp.getoption(ptdt,"pt-dt", 1.0) &&
+            clp.getoption(pttau,"pt-tau", 10.0) &&
 
             clp.getoption(sm,"smooth",-1e-3) &&  
             clp.getoption(nn,"neigh",(unsigned long) 4) &&
@@ -80,6 +93,7 @@ int main(int argc, char**argv)
     std::vector<std::vector<double> > plist; std::vector<double> point(D), weights;
     
     // reads points from standard input
+    
     while (std::cin.good())
     {
         double nw;
@@ -87,7 +101,7 @@ int main(int argc, char**argv)
         if (fweight) std::cin>>nw; else nw=1.0; 
         if (std::cin.good()) { plist.push_back(point); weights.push_back(nw); }
     }
-
+        
     std::valarray<std::valarray<double> > hplist, lplist; 
     FMatrix<double> mpoints(plist.size(),D);
     for (int i=0; i<plist.size(); i++) for (int j=0; j<D; j++) mpoints(i,j)=plist[i][j];
@@ -96,7 +110,7 @@ int main(int argc, char**argv)
     NLDRMetricPBC nperi; NLDRMetricEuclid neuclid; NLDRMetricSphere nsphere;
     nperi.periods.resize(D); nperi.periods=peri;
     nsphere.periods.resize(D); nsphere.periods=speri;
-            
+         
     NLDRMDSReport mdsreport;
     NLDRMDSOptions mdsopts; mdsopts.lowdim=d; mdsopts.verbose=fveryverb;
     if (peri==0.0 && speri==0.0) mdsopts.metric=&neuclid;
@@ -112,20 +126,49 @@ int main(int argc, char**argv)
     { tfpars.resize(0); iteropts.tfunH.set_mode(NLDRIdentity,tfpars); }
     else 
     {
-      csv2floats(fdhd,tfpars); if (tfpars.size()<3) ERROR("-fun-hd argument must be of the form sigma,a,b")
-      std::cerr<<"high-dim pars"<<tfpars<<"\n";
-      iteropts.tfunH.set_mode(NLDRXSigmoid,tfpars);  fhdpars=tfpars;
+      csv2floats(fdhd,tfpars);  fhdpars=tfpars; 
+      std::cerr<<"high-dim pars"<<tfpars<<"\n";     
+      if (tfpars.size()==2) 
+      {
+        iteropts.tfunH.set_mode(NLDRGamma,tfpars);       
+      }
+      else if (tfpars.size()==3) 
+      {
+        iteropts.tfunH.set_mode(NLDRXSigmoid,tfpars);     
+      }
+      else
+      {  ERROR("-fun-hd argument must be of the form sigma,a,b or sigma,n");  }
+      
+      //for (double x=0; x<10;x+=0.05) std::cout << x<<" "<<iteropts.tfunH.f(x)<<" "<<iteropts.tfunH.df(x)<<std::endl;
     }
     
     if (fdld=="identity")
     { tfpars.resize(0); iteropts.tfunL.set_mode(NLDRIdentity,tfpars); }
     else 
     {
-      csv2floats(fdld,tfpars); if (tfpars.size()<3) ERROR("-fun-ld argument must be of the form sigma,a,b")
-      std::cerr<<"lo-dim pars"<<tfpars<<"\n";      
-      iteropts.tfunL.set_mode(NLDRXSigmoid,tfpars);  fldpars=tfpars; 
+      csv2floats(fdld,tfpars); fldpars=tfpars;      
+      std::cerr<<"lo-dim pars"<<tfpars<<"\n";     
+      if (tfpars.size()==2) 
+      {
+        iteropts.tfunL.set_mode(NLDRGamma,tfpars);  
+      }
+      else if (tfpars.size()==3) 
+      {
+        iteropts.tfunL.set_mode(NLDRXSigmoid,tfpars);
+      }
+      else
+      {  ERROR("-fun-ld argument must be of the form sigma,a,b or sigma,n");  }
     }
     
+    if (fwarp)   //"warp" mode
+    {
+      tfpars.resize(0); iteropts.tfunL.set_mode(NLDRIdentity,tfpars);
+      tfpars.resize(5); tfpars[0]=fhdpars[0]; tfpars[1]=fhdpars[1]; tfpars[2]=fhdpars[2]; tfpars[3]=fldpars[1]; tfpars[4]=fldpars[2];   
+      iteropts.tfunH.set_mode(NLDRWarp,tfpars);      
+      for (double x=0; x<3; x+=0.01)
+      { std::cerr<<" ppp "<<x<<" "<<iteropts.tfunH.f(x)<<"  "<<iteropts.tfunH.df(x)<<std::endl; }
+    }
+
     bool doglobal;
     if (gpars!="")
     {
@@ -139,7 +182,16 @@ int main(int argc, char**argv)
     if (itermode=="conjgrad") iteropts.minmode=NLDRCGradient;
     else if (itermode=="simplex") iteropts.minmode=NLDRSimplex;
     else if (itermode=="anneal") iteropts.minmode=NLDRAnnealing;
-    iteropts.saopts.temp_init=sat1; iteropts.saopts.temp_final=sat2;
+    else if (itermode=="paratemp") iteropts.minmode=NLDRParatemp;
+
+    std::cerr<<"hey "<<itermode<<" "<<iteropts.minmode<<"\n";
+    std::valarray<double> sat(0.0,2); csv2floats(tempopts,sat);
+    std::cerr<<" simulated annealing ops: "<<sat<<"\n";
+    iteropts.saopts.temp_init=sat[0]; iteropts.saopts.temp_final=sat[1];
+    iteropts.ptopts.temp_init=sat[0]; iteropts.ptopts.temp_final=sat[1]; 
+    iteropts.ptopts.temp_factor=ptfac; iteropts.ptopts.replica=npt;
+    iteropts.ptopts.dt=ptdt;  iteropts.ptopts.tau=pttau;
+
     iteropts.weights.resize(weights.size()); for (unsigned long i=0; i<weights.size();++i) iteropts.weights[i]=weights[i]; iteropts.imix=imix;
     
     iteropts.ipoints.resize(mpoints.rows(),d);
@@ -149,36 +201,74 @@ int main(int argc, char**argv)
         std::ifstream fip(finit.c_str());
         for (unsigned long i=0; i<mpoints.rows(); i++)
             for (unsigned long j=0; j<d; j++) fip>>iteropts.ipoints(i,j);
+            
         RndGaussian<double> prng;
         if (irnd>0) for (unsigned long i=0; i<mpoints.rows(); i++)
             for (unsigned long j=0; j<d; j++) iteropts.ipoints(i,j)+=prng()*irnd;
     }
     else
     {
-      //initialize from classical MDS
-      NLDRMDS(mpoints,nlproj,mdsopts,mdsreport);
+      //initialize from classical MDS      
+      FMatrix<double> ss(mpoints.rows(),mpoints.rows());
+      std::cerr<<ss.rows()<<" "<<ss.cols()<<"  "<<ss.size()<<"  SIMIL\n";
+      if (fsimil) ss=mpoints;
+      else 
+      {
+         ss*=0.0;
+         for (unsigned long i=0; i<mpoints.rows(); i++) 
+         for (unsigned long j=0; j<i; j++) ss(i,j)=ss(j,i)=mdsopts.metric->dist(&mpoints(i,0),&mpoints(j,0),D); 
+      }
+      if (fwarp)
+      {
+         std::cerr<<"warping distances\n";
+         for (unsigned long i=0; i<mpoints.rows(); i++) for (unsigned long j=0; j<i; j++) ss(i,j)=ss(j,i)=iteropts.tfunH.f(ss(i,j));
+      }
+      //if (fsimil) NLDRMDS(mpoints,nlproj,mdsopts,mdsreport, simil);
+      //else 
+      NLDRMDS(mpoints,nlproj,mdsopts,mdsreport,ss);
+      
       nlproj.get_points(hplist,lplist);
       
       for (unsigned long i=0; i<mpoints.rows(); i++)
          for (unsigned long j=0; j<d; j++) iteropts.ipoints(i,j)=lplist[i][j];
     }
     
-    iteropts.global=false; iteropts.steps=presteps;
+    
+    if (fwwarp)
+    {    
+        NLDRFunction fhd, fld; fhd.set_mode(NLDRXSigmoid,fhdpars); fld.set_mode(NLDRXSigmoid,fldpars);
+        iteropts.dweights.resize(mpoints.rows(),mpoints.rows());
+        double Dij, dij;
+        for (unsigned long i=0; i<mpoints.rows(); i++) 
+           for (unsigned long j=0; j<i; j++) 
+           {
+               Dij=mdsopts.metric->dist(&mpoints(i,0),&mpoints(j,0),D); 
+               dij=neuclid.dist(&iteropts.ipoints(i,0),&iteropts.ipoints(j,0),d);
+               iteropts.dweights(i,j)=iteropts.dweights(j,i)=pow(abs(fhd.f(Dij)-fld.f(dij)),2.0)/pow(abs(iteropts.tfunH.f(Dij)-dij),2.0);
+           }
+       std::cerr<<" matrix transfer weights have been built\n";
+    }
+    
+    iteropts.global=false; iteropts.steps=presteps; 
     if (presteps>0) 
     {  
-      NLDRITER(mpoints,nlproj,iteropts,iterreport);
-      nlproj.get_points(hplist,lplist);  
+       if (fsimil) NLDRITER(mpoints,nlproj,iteropts,iterreport, mpoints);
+       else NLDRITER(mpoints,nlproj,iteropts,iterreport);
+       nlproj.get_points(hplist,lplist);  
     }
-        
+     
+    std::cerr<<"iterative done\n"    ;
     if (doglobal)
     {
       iteropts.global=true; iteropts.steps=gsteps; 
       for (unsigned long i=0; i<mpoints.rows(); i++)
          for (unsigned long j=0; j<d; j++) iteropts.ipoints(i,j)=lplist[i][j];      
-      NLDRITER(mpoints,nlproj,iteropts,iterreport);
+      if (fsimil) NLDRITER(mpoints,nlproj,iteropts,iterreport, mpoints);
+      else NLDRITER(mpoints,nlproj,iteropts,iterreport);
       nlproj.get_points(hplist,lplist);        
     }
-    
+
+    std::cerr<<"printing out\n"    ;    
     if (fplumed)
     {
         std::cout << "NLANDMARKS " <<lplist.size()<<"\n\n";
@@ -250,10 +340,11 @@ int main(int argc, char**argv)
     }
     
     std::valarray<double> com(d); com=0.0;
+    std::cout.precision(12); std::cout.setf(std::ios::scientific);
     if (fcenter)
     { for (int i=0; i<lplist.size(); i++) com+=lplist[i]; com*=1.0/lplist.size(); }
     for (int i=0; i<lplist.size(); i++)
-    {
+    {    
         for (int h=0; h<d; h++)  std::cout<<lplist[i][h]-com[h]<<" ";
         if (fveryverb) 
         {
