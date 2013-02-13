@@ -1,6 +1,6 @@
 #ignored patterns
 
-bin/*
+bin/d*
 *.o
 *.d
 *.a
