@@ -11,6 +11,9 @@
 #include "interpol.hpp"
 #include "linalg.hpp"
 
+#include <boost/math/special_functions/gamma.hpp>
+
+
 #ifdef ARPACK
 namespace tblapack {
 extern "C" {
@@ -51,13 +54,40 @@ inline double NLDRFunction::nldr_dcompress(double x) const
 inline void NLDRFunction::nldr_compress(double x, double &rf, double& rdf)  const
 {  double sx=x*pars[0];   sx=1.0/(1.0+sx); rf=1.0-sx;  rdf=(sx*sx)*pars[0]; }
 
-//this must return 1-(1+(2^(a/b)-1)(x/s)^a)^-b/a, needs cleaning up (precompute constants)
+//this must return 1-(1+(2^(a/b)-1)(x/s)^a)^-b/a
 inline double NLDRFunction::nldr_xsigmoid(double x) const
 { double sx=x*pars[0];  return 1.0-pow(1.0+pars[1]*pow(sx,pars[2]),pars[4]); }
 inline double NLDRFunction::nldr_dxsigmoid(double x) const
 { double sx=x*pars[0];  sx=pars[1]*pow(sx,pars[2]);  return pars[3]*sx/x*pow(1.+sx,pars[4]-1.0); }
 inline void NLDRFunction::nldr_xsigmoid(double x, double &rf, double& rdf) const
 { double sx=x*pars[0];  sx=pars[1]*pow(sx,pars[2]); rf=pow(1.0+sx,pars[4]); rdf=pars[3]*sx/x*rf/(1.0+sx); rf=1.0-rf; }
+
+
+//returns a gamma-function sigmoid
+//pars[0]=1.0/(sigma sqrt[2]), pars[1]=N, pars[2]=2/gamma(N/2)
+inline double NLDRFunction::nldr_gamma(double x) const
+{ double sx=x*pars[0];  return boost::math::gamma_q(pars[1]*0.5, sx*sx); }
+inline double NLDRFunction::nldr_dgamma(double x) const
+{ double sx=x*pars[0];  return -pars[2]*pow(sx,pars[1]-1)*exp(-sx*sx)*pars[0]; }
+inline void NLDRFunction::nldr_gamma(double x, double &rf, double& rdf) const
+{ double sx=x*pars[0];  rf=boost::math::gamma_q(pars[1]*0.5, sx*sx); rdf=-pars[2]*pow(sx,pars[1]-1)*exp(-sx*sx)*pars[0]; }
+
+
+
+//this must return f^-1_LD(f(HD(x))
+//        pars.resize(10); pars[0]=1.0/npars[0]; pars[1]=pow(2.,npars[1]/npars[2])-1.0; pars[2]=npars[1]; pars[3]=npars[2]; pars[4]=-npars[2]/npars[1];
+//                        pars[5]=npars[0]; pars[6]=pow(2.,npars[3]/npars[4])-1.0; pars[7]=1.0/npars[3]; pars[8]=npars[4]; pars[9]=-npars[3]/npars[4];
+
+inline double NLDRFunction::g(double y)  const { double sx=pow(1.0-y,pars[9]); sx=(sx-1.0)/pars[6];  return pars[5]*pow(sx,pars[7]); }
+inline double NLDRFunction::dg(double y) const { double sx=pow(1.0-y,-pars[9]); sx=(sx-1.0)*(y-1.0)*pars[8];  return g(y)/sx; }
+
+inline double NLDRFunction::nldr_warp(double x) const
+{ double fx=nldr_xsigmoid(x); return g(fx); }
+inline double NLDRFunction::nldr_dwarp(double x) const
+{ double fx=nldr_xsigmoid(x), dfx=nldr_dxsigmoid(x);  return dg(fx)*dfx; }
+inline void NLDRFunction::nldr_warp(double x, double &rf, double& rdf) const
+{ double fx, dfx; nldr_xsigmoid(x,fx,dfx); rf=g(fx); rdf=df(fx)*dfx; }
+
 
 
 NLDRFunction::NLDRFunction(const NLDRFunction& nf)
@@ -70,6 +100,8 @@ NLDRFunction::NLDRFunction(const NLDRFunction& nf)
         case NLDRCompress: pf=&NLDRFunction::nldr_compress; pdf=&NLDRFunction::nldr_dcompress; pfdf=&NLDRFunction::nldr_compress;  break;
         case NLDRSigmoid: pf=&NLDRFunction::nldr_sigmoid; pdf=&NLDRFunction::nldr_dsigmoid; pfdf=&NLDRFunction::nldr_sigmoid;  break;
         case NLDRXSigmoid: pf=&NLDRFunction::nldr_xsigmoid; pdf=&NLDRFunction::nldr_dxsigmoid; pfdf=&NLDRFunction::nldr_xsigmoid;  break;
+        case NLDRGamma: pf=&NLDRFunction::nldr_gamma; pdf=&NLDRFunction::nldr_dgamma; pfdf=&NLDRFunction::nldr_gamma;  break;
+        case NLDRWarp: pf=&NLDRFunction::nldr_warp; pdf=&NLDRFunction::nldr_dwarp; pfdf=&NLDRFunction::nldr_warp;  break;        
     }
 }
 
@@ -84,6 +116,8 @@ NLDRFunction& NLDRFunction::operator=(const NLDRFunction& nf)
         case NLDRCompress: pf=&NLDRFunction::nldr_compress; pdf=&NLDRFunction::nldr_dcompress; pfdf=&NLDRFunction::nldr_compress;  break;
         case NLDRSigmoid: pf=&NLDRFunction::nldr_sigmoid; pdf=&NLDRFunction::nldr_dsigmoid; pfdf=&NLDRFunction::nldr_sigmoid;  break;
         case NLDRXSigmoid: pf=&NLDRFunction::nldr_xsigmoid; pdf=&NLDRFunction::nldr_dxsigmoid; pfdf=&NLDRFunction::nldr_xsigmoid;  break;
+        case NLDRGamma: pf=&NLDRFunction::nldr_gamma; pdf=&NLDRFunction::nldr_dgamma; pfdf=&NLDRFunction::nldr_gamma;  break;
+        case NLDRWarp: pf=&NLDRFunction::nldr_warp; pdf=&NLDRFunction::nldr_dwarp; pfdf=&NLDRFunction::nldr_warp;  break;                
     }
     return *this;
 }
@@ -111,6 +145,17 @@ void NLDRFunction::set_mode(NLDRFunctionMode mode, const std::valarray<double>& 
         pars.resize(5); pars[0]=1.0/npars[0]; pars[1]=pow(2.,npars[1]/npars[2])-1.0; pars[2]=npars[1]; pars[3]=npars[2]; pars[4]=-npars[2]/npars[1];
         pf=&NLDRFunction::nldr_xsigmoid; pdf=&NLDRFunction::nldr_dxsigmoid; pfdf=&NLDRFunction::nldr_xsigmoid;
         break;
+    case NLDRGamma:  //this must return gamma(N/2,(x/sigma)^2/2) sigma=np[0] N=np[1] 
+        if (npars.size()!=2) ERROR("Wrong number of parameters for Gamma transfer function");
+        pars.resize(3); pars[0]=1.0/npars[0]/sqrt(2.0); pars[1]=npars[1]; pars[2]=2.0/boost::math::tgamma(npars[1]*0.5); 
+        pf=&NLDRFunction::nldr_gamma; pdf=&NLDRFunction::nldr_dgamma; pfdf=&NLDRFunction::nldr_gamma;
+        break;        
+    case NLDRWarp:  //this must return f^-1_d(d_D(x)) s=np[0] a_D=np[1] b_D=np[2] a_d=np[3] b_d=np[4]
+        if (npars.size()!=5) ERROR("Wrong number of parameters for XSigmoid transfer function");
+        pars.resize(10); pars[0]=1.0/npars[0]; pars[1]=pow(2.,npars[1]/npars[2])-1.0; pars[2]=npars[1]; pars[3]=npars[2]; pars[4]=-npars[2]/npars[1];
+                        pars[5]=npars[0]; pars[6]=pow(2.,npars[3]/npars[4])-1.0; pars[7]=1.0/npars[3]; pars[8]=npars[4]; pars[9]=-npars[3]/npars[4];
+        pf=&NLDRFunction::nldr_warp; pdf=&NLDRFunction::nldr_dwarp; pfdf=&NLDRFunction::nldr_warp;
+        break;        
     default: ERROR("Unsupported transfer function");
     }
     pmode=mode;
@@ -1115,7 +1160,7 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
     { ld(j,i)=ld(i,j)=metric->dist(&coords[i*d], &coords[j*d],d);  }
     
     //std::cerr<<"LOW-DIM DISTANCES" <<ld<<"\n";
-    double fld, dfld, gij, wij, tw=0.0;
+    double fld, dfld, gij, wij, tw=0.0, dwij;
     pval=0.0; pgrad=0.0; 
     double dcw=1.0;
     
@@ -1128,9 +1173,11 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
         tfun.fdf(ld(i,j),fld,dfld);
         
         wij=weights[i]*weights[j]*dcw;
+        if (dweights.size()>0) dwij=dweights(i,j); else dwij=1.0;
+        
         tw+=wij;
-        pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *wij;
-        gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/ld(i,j) *wij;
+        pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *wij *dwij;
+        gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/ld(i,j) *wij *dwij;
 
         for (unsigned long h=0; h<d; h++)
         {
@@ -1199,6 +1246,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
     chiobj.fhd.resize(proj.n,proj.n); chiobj.n=proj.n; chiobj.d=proj.d;
     chiobj.metric=new NLDRMetricEuclid; chiobj.tfun=opts.tfunL; 
     chiobj.weights.resize(proj.n); if (opts.weights.size()==0) chiobj.weights=1.0; else chiobj.weights=opts.weights; chiobj.imix=opts.imix;
+    if (opts.dweights.size()==0) chiobj.dweights.resize(0,0); else chiobj.dweights=opts.dweights;
     
     std::valarray<double> pcoords(proj.n*proj.d); 
     FMatrix<double> distHD(chiobj.fhd), distLD(proj.n,proj.n);

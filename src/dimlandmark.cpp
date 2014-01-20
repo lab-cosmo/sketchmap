@@ -161,6 +161,7 @@ int main(int argc, char**argv)
         
         for (unsigned long i=0; i<n; i++)
         {
+            std::cerr<<"picking point "<<i<<std::endl;
             
             isunique=false;
             while (!isunique)
@@ -170,7 +171,7 @@ int main(int argc, char**argv)
                 if (funique) for (unsigned long j=0; j<i; ++j) if (isel[j]==isel[i]) { isunique=false; break; }
             }
                     
-            LP.row(isel[i])=HP.row(isel[i]);
+            LP.row(i)=HP.row(isel[i]);
             maxd=0.0;
             for (unsigned long j=0; j<N; ++j) 
             { dij=metric->dist(&LP(i,0),&HP(j,0),D); if (mdlist[j]> dij) mdlist[j]=dij; }
@@ -367,7 +368,7 @@ int main(int argc, char**argv)
     }
     
     
-    std::cout<<std::scientific; std::cout.precision(6); 
+    std::cout<<std::scientific; std::cout.precision(10); 
     std::cout<<"# "<<n<<" landmark points selected out of "<<N<<" and chosen by "<<smode<<"\n";
     std::cout<<"# Max distance detected: "<<maxd<<"\n";
     for (unsigned long i=0; i<n; ++i)

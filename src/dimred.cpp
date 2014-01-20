@@ -54,7 +54,7 @@ int main(int argc, char**argv)
     CLParser clp(argc,argv);    
     double irnd, imix, ptfac, ptdt, pttau;
     unsigned long D,d,dts,nn, presteps, gsteps, pluneigh, npt; 
-    double sm, neps,peri,speri; bool fverb, fveryverb, fplumed, fhelp,  fweight, fcenter, fsimil;
+    double sm, neps,peri,speri; bool fverb, fveryverb, fplumed, fhelp,  fweight, fcenter, fsimil, fwarp, fwwarp;
     std::string fmds, finit, fdhd, fdld, gpars, itermode, tempopts;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
             clp.getoption(d,"d",(unsigned long) 2) &&
@@ -72,6 +72,8 @@ int main(int argc, char**argv)
             clp.getoption(presteps,"preopt",(unsigned long) 0) &&
             clp.getoption(fdhd,"fun-hd",std::string("identity")) &&
             clp.getoption(fdld,"fun-ld",std::string("identity")) &&
+            clp.getoption(fwarp,"warp",false) &&             
+            clp.getoption(fwwarp,"wwarp",false) &&                         
             clp.getoption(itermode,"imode",std::string("conjgrad")) &&
             clp.getoption(finit,"init",std::string("")) &&
             clp.getoption(irnd,"randomize",0.0) &&
@@ -124,20 +126,49 @@ int main(int argc, char**argv)
     { tfpars.resize(0); iteropts.tfunH.set_mode(NLDRIdentity,tfpars); }
     else 
     {
-      csv2floats(fdhd,tfpars); if (tfpars.size()<3) ERROR("-fun-hd argument must be of the form sigma,a,b")
-      std::cerr<<"high-dim pars"<<tfpars<<"\n";
-      iteropts.tfunH.set_mode(NLDRXSigmoid,tfpars);  fhdpars=tfpars;
+      csv2floats(fdhd,tfpars);  fhdpars=tfpars; 
+      std::cerr<<"high-dim pars"<<tfpars<<"\n";     
+      if (tfpars.size()==2) 
+      {
+        iteropts.tfunH.set_mode(NLDRGamma,tfpars);       
+      }
+      else if (tfpars.size()==3) 
+      {
+        iteropts.tfunH.set_mode(NLDRXSigmoid,tfpars);     
+      }
+      else
+      {  ERROR("-fun-hd argument must be of the form sigma,a,b or sigma,n");  }
+      
+      //for (double x=0; x<10;x+=0.05) std::cout << x<<" "<<iteropts.tfunH.f(x)<<" "<<iteropts.tfunH.df(x)<<std::endl;
     }
     
     if (fdld=="identity")
     { tfpars.resize(0); iteropts.tfunL.set_mode(NLDRIdentity,tfpars); }
     else 
     {
-      csv2floats(fdld,tfpars); if (tfpars.size()<3) ERROR("-fun-ld argument must be of the form sigma,a,b")
-      std::cerr<<"lo-dim pars"<<tfpars<<"\n";      
-      iteropts.tfunL.set_mode(NLDRXSigmoid,tfpars);  fldpars=tfpars; 
+      csv2floats(fdld,tfpars); fldpars=tfpars;      
+      std::cerr<<"lo-dim pars"<<tfpars<<"\n";     
+      if (tfpars.size()==2) 
+      {
+        iteropts.tfunL.set_mode(NLDRGamma,tfpars);  
+      }
+      else if (tfpars.size()==3) 
+      {
+        iteropts.tfunL.set_mode(NLDRXSigmoid,tfpars);
+      }
+      else
+      {  ERROR("-fun-ld argument must be of the form sigma,a,b or sigma,n");  }
     }
     
+    if (fwarp)   //"warp" mode
+    {
+      tfpars.resize(0); iteropts.tfunL.set_mode(NLDRIdentity,tfpars);
+      tfpars.resize(5); tfpars[0]=fhdpars[0]; tfpars[1]=fhdpars[1]; tfpars[2]=fhdpars[2]; tfpars[3]=fldpars[1]; tfpars[4]=fldpars[2];   
+      iteropts.tfunH.set_mode(NLDRWarp,tfpars);      
+      for (double x=0; x<3; x+=0.01)
+      { std::cerr<<" ppp "<<x<<" "<<iteropts.tfunH.f(x)<<"  "<<iteropts.tfunH.df(x)<<std::endl; }
+    }
+
     bool doglobal;
     if (gpars!="")
     {
@@ -177,13 +208,45 @@ int main(int argc, char**argv)
     }
     else
     {
-      //initialize from classical MDS
-      if (fsimil) NLDRMDS(mpoints,nlproj,mdsopts,mdsreport, mpoints);
-      else NLDRMDS(mpoints,nlproj,mdsopts,mdsreport);
+      //initialize from classical MDS      
+      FMatrix<double> ss(mpoints.rows(),mpoints.rows());
+      std::cerr<<ss.rows()<<" "<<ss.cols()<<"  "<<ss.size()<<"  SIMIL\n";
+      if (fsimil) ss=mpoints;
+      else 
+      {
+         ss*=0.0;
+         for (unsigned long i=0; i<mpoints.rows(); i++) 
+         for (unsigned long j=0; j<i; j++) ss(i,j)=ss(j,i)=mdsopts.metric->dist(&mpoints(i,0),&mpoints(j,0),D); 
+      }
+      if (fwarp)
+      {
+         std::cerr<<"warping distances\n";
+         for (unsigned long i=0; i<mpoints.rows(); i++) for (unsigned long j=0; j<i; j++) ss(i,j)=ss(j,i)=iteropts.tfunH.f(ss(i,j));
+      }
+      //if (fsimil) NLDRMDS(mpoints,nlproj,mdsopts,mdsreport, simil);
+      //else 
+      NLDRMDS(mpoints,nlproj,mdsopts,mdsreport,ss);
+      
       nlproj.get_points(hplist,lplist);
       
       for (unsigned long i=0; i<mpoints.rows(); i++)
          for (unsigned long j=0; j<d; j++) iteropts.ipoints(i,j)=lplist[i][j];
+    }
+    
+    
+    if (fwwarp)
+    {    
+        NLDRFunction fhd, fld; fhd.set_mode(NLDRXSigmoid,fhdpars); fld.set_mode(NLDRXSigmoid,fldpars);
+        iteropts.dweights.resize(mpoints.rows(),mpoints.rows());
+        double Dij, dij;
+        for (unsigned long i=0; i<mpoints.rows(); i++) 
+           for (unsigned long j=0; j<i; j++) 
+           {
+               Dij=mdsopts.metric->dist(&mpoints(i,0),&mpoints(j,0),D); 
+               dij=neuclid.dist(&iteropts.ipoints(i,0),&iteropts.ipoints(j,0),d);
+               iteropts.dweights(i,j)=iteropts.dweights(j,i)=pow(abs(fhd.f(Dij)-fld.f(dij)),2.0)/pow(abs(iteropts.tfunH.f(Dij)-dij),2.0);
+           }
+       std::cerr<<" matrix transfer weights have been built\n";
     }
     
     iteropts.global=false; iteropts.steps=presteps; 
