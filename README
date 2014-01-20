@@ -1,0 +1,21 @@
+   ################################################
+   # A set of tools to perform MDS and sketch-map #
+   # non-linear dimensionality reduction.         #
+   ################################################
+
+ Distributed under the GNU General Public License v 3.0
+ A copy of the license is distributed in the LICENSE file.
+ 
+ + COMPILATION:
+ 
+ The compiler to be used and various compilation options
+ must be set in make.in. The only real dependency of
+ sketch-map is LAPACK. 
+ Once you set this couple of variables to match your
+ system, you should only need yo type
+ 
+ make
+ 
+ Executables should be placed in bin/
+ 
+

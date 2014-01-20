@@ -1,18 +1,16 @@
-
-# Parallel/serial compilation
+# COMPILER AND COMPILER FLAGS
 CXX=g++
+CXXFLAGS:=$(CXXFLAGS) -O3 -ftracer -floop-optimize -funroll-loops
 
-# Switches for debug mode
-ifneq ($(DEBUG),)
-  CXXFLAGS:=$(CXXFLAGS) -DDEBUG -O0 -pg -g -Wall
-else
-  # optimization flags
-  CXXFLAGS:=$(CXXFLAGS) -O3 -ftracer -floop-optimize -funroll-loops -mmmx -msse2 -mfpmath=sse -g
-endif
+# AUTOMATIC DEPENDENCY GENERATION
+MAKEDEPEND=g++ -M $(CXXFLAGS)
 
-MAKEDEPEND=g++ -M $(CXXFLAGS) 
+# INCLUDES AND LINKER FLAGS
+# Lapack includes and linking
 
-# Linker flags
-TBSRC=../../toolbox/src/
-LDFLAGS=-L$(TBSRC)/libs -ltoolbox -llapack
-CXXFLAGS:=$(CXXFLAGS) -I$(TBSRC)/libs 
+ILAPACK=
+LLAPACK=-llapack
+
+TBSRC=../libs/
+LDFLAGS=-L$(TBSRC) -ltoolbox $(LLAPACK)
+CXXFLAGS:=$(CXXFLAGS) -I$(TBSRC) $(ILAPACK)
