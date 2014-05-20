@@ -1,0 +1,153 @@
+<div class="columns">
+
+  <h2> Running sketch-map </h2>
+  
+  <p>
+  To generate our sketch-map projection one must minimize the following stress function:
+
+\[
+  \chi^2 = \sum_{i=2}^N \sum_{j=2}^{i-1} w_i w_j \left[ F(D_{ij}) - f(d_{ij}) \right]^2
+\]
+
+  Finding the global minimum for this function is not at all trivial and algorithms such as conjugate gradient
+  are liable to end up getting trapped in a local minima.  As such we use a more robust global optimization strategy.  
+  Obviously, the stress function above can be broken down into contributions due from each of the points that we are projecting:
+
+\[
+  \chi^2_i = \sum_{i \ne j } w_i w_j \left[ F(D_{ij}) - f(d_{ij}) \right]^2
+\]
+
+  This stress function can be partially optimized by adjusting the position of the projection of the ith landmark point only.
+  Admitedly there is a dependence on the projections of all other landmarks but we will assume that this is small.  Optimizing
+  the projection of one landmark at a time is considerably simpler than optimizing the projections of all the landmarks simultaneously.
+  In fact, because optimizing the projection of a single landmark is a 2d problem, it is feasible to do a brute-force, global optimization
+  of this quantity and to simply search on a grid for the position of lowest stress.  What is more we do not even have to calculate
+  the stress at every single point on the grid.  We can instead calculate the grid at a subset of points and then interpolate the function
+  onto our finer grained search grid.  Hence, to find global minima in the sketch-map stress function we thus use conjugate gradient optimizations of the stress
+  map function together with global optimizations of each of the projections in turn.  In our experiments this combination of strategies
+  has proven itself to be considerably more robust than using the various strategies separately.
+  </p> 
+
+  <div class="cbox">
+    <div class="head" id="use-cl-smap" onclick="safe_toggle('cl-smap','use-cl-smap');">
+       Do this on the command line [+-]
+    </div>
+    <div class="body" id="cl-smap" style="display: block;">
+       <p>
+         To generate a sketch-map projection we need to use the <b>dimred</b> executable multiple times.  The main reason for this is 
+         that we must start our final, sketch-map optimization from a reasonable initial configuration.  Hence, all the steps described below
+         do is ensure that this initial configuration is reasonable.
+       </p>
+ 
+        <p>
+         A reasonable initial configuration for the sketch-map projections is the result of a 
+         distance matching calculation - i.e. the result of a minimization of a sketch-map stress function with the sigmoid functions
+         removed.  This is a particularly convenient start point because, if we also remove the weights from the stress function, the optimal
+         the resulting stress function can be optimized using a deterministic procedure based on calculating
+         eigenvalues and eigenvectors of the separation matrix.  To do this initial optimization using <b>dimred</b> issue the following command.    
+       </p>
+
+       <div class="code" >
+         dimred -D 24 -d 2 -pi 6.2832 &lt; LANDMARKS &gt; PROJECTION
+       </div>
+
+       <p>
+         An explanation of the various flags this command takes is given in the table below:
+       </p>
+
+       <table  align="center" frame="void" width="95%" cellpadding="5%">
+       <tr>
+       <td width='15%'> <b> -D </b> </td> <td> The dimensionality of the input space - i.e. the number of collective variables. </td>
+       </tr> <tr>
+       <td> <b> -d </b> </td> <td> The dimensionality of the space we are projecting the into </td>
+       </tr> <tr>
+       <td> <b> -pi </b> </td> <td> Some collective variables (e.g. torsional angles) are periodic and hence distances must be calculated using the minimum image convention.  This fl
+ag   informs dimred that this is the case together with the periodicity of all the variables. If this flag is absent the minimum image convention is not used. </td>
+       </tr>
+       </table>
+
+       <p> 
+         We can further refine the result we obtain for distance matching by optimizing the projections using an iterative procedure.  In the iterative procedure,
+         unlike the deterministic procedure, we can re-incorporate the weights of points.  Furthermore, we can do better than pure conjugate
+         gradient by using the global optimization steps for single projections that was described in the introduction.  To do this we require
+         information on the extent of the grid.  This we can obtain by ensuring that the grid is large enough to incorporate all the  projection
+         generated during the deterministic procedure.  The command for running the iterative distance matching algorithm is as follows:
+      </p>  
+
+       <div class="code" >
+         dimred -D 24 -d 2 -pi 6.2832 -w -preopt 20 -grid 100,20,200 -gopt 3 &lt; LANDMARKS &gt; PROJECTION  
+       </div>
+       <p>
+         This command does the initial deterministic optimization of the distance-matching stress function and then follows that with an iterative optimiation
+         of the distance-matching stress function including weights.  The projection reported in the output file <b>PROJECTION</b> thus reports a projection
+         in which as many of the distances in the high-dimensionality space as possible are reproduced.  An explanation of the various unfamiliar flags this command
+         takes is given in the table below:
+       </p>  
+
+       <table  align="center" frame="void" width="95%" cellpadding="5%">
+       <tr>
+       <td width='15%'> <b> -w </b> </td> <td> This flag tells dimred that it is to use the weights that were calculated during the landmark extraction procedure in the stress functions.  Obviously, if this flag is present there must be weights data in the LANDMARKS file </td>
+       </tr> <tr>
+       <td> <b> -preopt </b> </td> <td> The number of conjugate gradient steps to perform prior to doing the global, pointwise optimization </td>
+       </tr> <tr>
+       <td> <b> -grid </b> </td> <td> With this flag we specify how the grid should be set up.  This takes three arguments: The spatial extent of the grid in the x and y directions (If this value is set equal to z then the grid will extend from -z to +z in the x and y directions), the number of grid points along the x and y axis at which dimred will calculate the value of the single-component stress function  and the number of grid points along the x and y axis onto which the single-component stress functions will be interpolated </td>
+       </tr> <tr>
+       <td> <b> -gopt </b> </td> <td> This is the number of steps of conjugate gradient minimization that the algorithm should do to optimize each point during the pointwise, global optimization </td>
+       </tr>
+       </table>
+
+       <p>
+         The sigmoid functions in the sketch-map stress function make this function particularly difficult to optimize.  As a result we cannot simply take
+         the result from the distance matching calculation and re-optimize the projections with the sketch-map stress function.  Instead we must
+         perform a series of intermediate steps in which we optimize a stress function that is a linear combination of the sketch-map and distance matching
+         stress functions.  Each step in this transition between the two regimes can be done using the following commands.
+       </p> 
+
+       <div class="code" >
+         mv PROJECTION OLD_PROJ <br/>
+         dimred -D 24 -d 2 -pi 6.2832 -w -fun-hd 6,12,12 -fun-ld 6,1,2 -preopt 20 -grid 100,20,200 -gopt 3 -init OLD_PROJ -imix 0.5 &lt; LANDMARKS &gt; PROJECTION 
+       </div>
+
+       <p>
+         In each step we start the new optimization from the result obtained during the previous optimization step.  Before restarting the calculation
+         we must set the width <b>-gw</b> so that all the projected points lie within the grid boundaries.  The <b>-imix</b> flag controls the fraction
+         of distance matching in the stress function and this parameter should be slowly annealed from 1.0 to 0.0.  The other unfamiliar flags that appear
+         in this command are explained in the table below.
+       </p>
+
+       <table  align="center" frame="void" width="95%" cellpadding="5%">
+       <tr>
+       <td width="15%"> <b> -fun-hd </b> </td> <td> The parameters for the high dimenionsionality sigmoid function.  This flag takes three arguments: the value of sigma, the value of a_D and the value of b_D. </td>
+       </tr> <tr>
+       <td> <b> -fun-ld </b> </td> <td> The parameters for the high dimenionsionality sigmoid function.  This flag takes three arguments: the value of sigma, the value of a_d and the value of b_d. </td>
+       </tr> <tr>
+       <td> <b> -init </b> </td> <td> The initial configuration to use during the optimization.  This should be the file containing the projection obtained during the previous step. </td>
+       </tr> <tr> 
+       <td> <b> -imix </b> </td> <td> The fraction of distance matching to use in the stress function. </td>
+       </tr> 
+       </table>
+    </div>
+  </div>
+  <script type="text/javascript">safe_toggle('cl-smap','use-cl-smap');</script>
+
+  <div class="cbox">
+    <div class="head" id="use-gismo-smap" onclick="safe_toggle('gismo-smap','use-gismo-smap');">
+       Do this using GISMO [+-]
+    </div>
+    <div class="body" id="gismo-smap" style="display: block;">
+        <img src="images/sketch-map-gismo.png"  height="200" alt="The dimensionality reduction window" class="floatright"/>
+        <p>
+        To perform sketch-map using GISMO you must first make the molecule composed of your landmark points the top molecule.
+        Once you have done this select <b>Dimensionality reduction</b> from the <b>Calculate</b> menu and the window shown on 
+        the right will appear.  In the top part of the window select the collective variables that you are using - the high 
+        dimensionality description of the state of the system.  In the middle window insert
+        your carefully selected sketch-map parameters.  The bottom window controls the optimization.  
+        Once you are done setting parameters press <b>Run</b> and wait
+        patiently. Once the calculation is finished you can plot the sketch-map projections of your landmarks by selecting the 
+        newly generated colvars (smap:0 and smap:0-y) from the x-axis and y-axis menus.
+      </p>
+    </div>
+  </div>
+  <script type="text/javascript">safe_toggle('gismo-smap','use-gismo-smap');</script>
+
+</div>

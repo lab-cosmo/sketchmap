@@ -1,0 +1,93 @@
+<div class="columns">
+  <h2> Projecting the remainder of the trajectory </h2> 
+
+  <p>   
+  Once you have created a projection of some landmark points you can find projections for other points using an out
+  of sample embedding.  This procedure is mathematically straightforward.  In fact 
+  we have already used it during the global optimization of our sketch-map projections.  For every new point we 
+  simply need to ensure that as many of the "distances" between the new point and the landmarks are reproduced. 
+  In other words we need to minimize the following stress function:
+ 
+\[
+  \chi^2_i = \sum_{i \ne j } w_i w_j \left[ F(D_{ij}) - f(d_{ij}) \right]^2
+\]
+
+  We have already explained in the documentation for <a href="http://sketchmap.berlios.de/compose.php?page=manu&amp;psub=tuts4">dimred</a> 
+  how global optimizations of these sorts
+  of stress function by searching over an interpolated grid of function values.  The exact same mathematics is used
+  here even though the routines are different.
+  </p> 
+ 
+  <div class="cbox">
+  <div class="head" id="use-cl-os" onclick="safe_toggle('cl-os','use-cl-os');"> 
+     Do this on the command line [+-]
+  </div>
+  <div class="body" id="cl-os" style="display: block;">
+     <p>
+       Out of sample projections are generated using the <b>dimproj</b> executable.  This takes as input a file
+       containing a list of points that you want to out of sample project.  It outputs a file containing the projections.
+       A typical dimproj command appears as follows:
+     </p>
+
+     <div class="code">
+     dimproj -D 24 -d 2 -pi 6.2832 -w -fun-hd 6,12,12 -fun-ld 6,1,2 -grid 100,20,200 -gopt 3 -P LANDMARKS -p PROJECTION &lt; CVS &gt; FULL_PROJECTION
+     </div>
+
+     <p>
+       The various flags in this command are explaned in the table below.
+     </p>
+ 
+    <table  align="center" frame="void" width="95%" cellpadding="5%">
+     <tr>
+     <td width='15%'> <b> -D </b> </td> <td> The dimensionality of the input space - i.e. the number of collective variables. </td>
+     </tr> <tr>
+     <td> <b> -d </b> </td> <td> The dimensionality of the space we are projecting the into </td>
+     </tr> <tr>
+     <td> <b> -pi </b> </td> <td> Some collective variables (e.g. torsional angles) are periodic and hence distances must be calculated using the minimum image convention.  This flag informs dimlandmark that this is the case together with the periodicity of all the variables. If this flag is absent the minimum image convention is not used. </td>
+     </tr> <tr>
+     <td> <b> -w </b> </td> <td> This flag tells dimred that it is to use the weights that were calculated during the landmark extraction procedure in the stress functions.  Obviously, if this flag is present there must be weights data in the LANDMARKS file </td>
+     </tr> <tr>
+     <td> <b> -P </b> </td> <td> A file containing the high-dimensionality data from which the projection was constructed - the input file for <b>dimred</b>. </td>
+     </tr><tr>
+     <td> <b> -p </b> </td> <td> A file containing the projections of the high-dimensionality data - the output file from <b>dimred</b>. </td>
+     </tr><tr>
+     <td> <b> -grid </b> </td> <td> With this flag we specify how the grid should be set up.  This takes three arguments: The spatial extent of the grid in the x and y directions (If this value is set equal to z then the grid will extend from -z to +z in the x and y directions), the number of grid points along the x and y axis at which dimred will calculate the value of the single-component stress function  and the number of grid points along the x and y axis onto which the single-component stress functions will be interpolated </td>
+     </tr><tr>
+     <td> <b> -gopt </b> </td> <td> This is the number of steps of conjugate gradient minimization that the algorithm should do to optimize each point during the pointwise, global optimization </td>
+     </tr><tr>
+     <td> <b> -fun-hd </b> </td> <td> The parameters for the high dimenionsionality sigmoid function.  This flag takes three arguments: the value of sigma, the value of a_D and the value of b_D. </td>
+     </tr> <tr>
+     <td> <b> -fun-ld </b> </td> <td> The parameters for the high dimenionsionality sigmoid function.  This flag takes three arguments: the value of sigma, the value of a_d and the value of b_d. </td>
+     </tr>
+     </table>
+
+     <p>
+     In addition to the flags above you must also specify the form of the stress function.  If your projection was done with distance matching
+     rather than sketch-map you can run without the <b>-fun-hd</b> and <b>-fun-ld</b> flags. </p> 
+  </div>
+  </div>
+  <script type="text/javascript">safe_toggle('cl-os','use-cl-os');</script> 
+
+  <div class="cbox">
+  <div class="head" id="use-gismo-os" onclick="safe_toggle('gismo-os','use-gismo-os');">
+     Do this using GISMO [+-]
+  </div>
+  <div class="body" id="gismo-os" style="display: block;">
+    <img src="images/osample-gismo.png"  width='350' alt="The projection window" class="floatleft"/>
+    <p>
+    The first step in projecting the remainder of the trajectory (having projected a set of landmarks) is to once again
+    make the trajectory the top molecule.  Once you have done this select <b>Out of sample embedding</b> from the <b>Calculate</b> menu
+    so that the window shown on the left appears.  This window closely resembles the Dimensionality reduction window that we used to
+    perform dimensionality reduction.  The main differences are the Use molecule and Data menus that appear directly under the cv selection.
+    If you click on the <b>Use molecule</b> menu a list of all the molecules loaded will appear.  Select the one that contains the landmark
+    frames on which you just performed sketch-map.  When you now click on <b>Data</b> you will see that you can select smap:0 - i.e. you can
+    select the projection that you have just performed.  When you select this projection you will see that all the parameter boxes fill in
+    automatically with the parameters that we just used to perform the sketch-map projection.  Hence, to project your trajectory all that remains
+    to be done is to click run and to once again wait patiently.  When the calculation is finished you can display the projections by selecting
+    the newly created colvars (proj-smap:0-x and proj-smap:0-y) from the x-axis and y-axis menus. 
+    </p>
+  </div>
+  </div>  
+  <script type="text/javascript">safe_toggle('gismo-os','use-gismo-os');</script>
+
+</div>

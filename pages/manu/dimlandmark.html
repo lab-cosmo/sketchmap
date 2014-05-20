@@ -1,0 +1,82 @@
+<div class="columns">
+  <h2> Selecting landmark points </h2>
+  
+  <p>
+  The sketch-map calculation is expensive and its expense increases in line with the number of points whose projections you are
+  endeavoring to find simultaneously.  It is therefore not feasible to fit projections for all the points in the trajectory
+  simultaneously. Hence, before running the sketch-map algorithm we must select a set of representative, landmark, points from the trajectory.
+  There are two strategies we use to do this selection:
+  </p>
+  
+  <!-- Eventually I would like to make this point with a picture -->
+  <ul>
+  <li> Select points randomly from the trajectory - <i>with this approach there are many landmarks in the vicinity of the basins and more poorly sampled regions are less well represented </i>
+  <li> Select points using a farthest point strategy - <i> the landmarks selected using this approach are more uniformly distributed across the whole of space which makes this approach succeptible to outliers </i>
+  </ul> 
+ 
+  <div class="cbox">
+    <div class="head" id="use-cl-landmarks" onclick="safe_toggle('cl-landmarks','use-cl-landmarks');">
+       Do this on the command line [+-]
+    </div>
+    <div class="body" id="cl-landmarks" style="display: block;">
+       <p>
+       Landmark extraction is done using the <b>dimlandmark</b> executable.  This command takes as input a file that contains the values of the collective
+       variables for each frame in the trajectory.  It outputs to standard output a file containing the values of the CVs at a subset of landmark points.  
+       A typical dimlandmark command is given below:
+       </p>
+
+       <div class="code">
+       dimlandmark -D 24 -n 1000 -pi 6.2832 -mode minmax -w < CVS > LANDMARKS
+       </div>
+
+       <p>
+       The various flags in this command are explained in the table below.  
+       </p> 
+
+       <table  align="center" frame="void" width="95%" cellpadding="5%">
+       <tr>
+       <td width=8%> <b> -D </b> </td> <td> The dimensionality of the input space - i.e. the number of collective variables. </td> 
+       </tr> <tr>
+       <td> <b> -n </b> </td> <td> The number of landmark points that are required. </td> 
+       </tr> <tr>
+       <td> <b> -pi </b> </td> <td> Some collective variables (e.g. torsional angles) are periodic and hence distances must be calculated using the minimum image convention.  This flag informs dimlandmark that this is the case together with the periodicity of all the variables. If this flag is absent the minimum image convention is not used. </td>
+       </tr> <tr>
+       <td> <b> -mode </b> </td> <td> This specifies how the landmarks are being selected.  This can be either farthest point sampling (minmax) or randomly (rand) </td> 
+       </tr> <tr>
+       <td> <b> -w </b> </td> <td> This flag tells dimlandmark that a weight should be assigned to each of the landmark points based on the number of non-landmark points that are 
+       within its voronoi polyhedra.  This information is then reported in an additional final column of the output file. </td>
+       </tr> <tr>
+       <td> <b> -i </b> </td> <td> This flag tells dimlandmark to report the line number (in the CVS file) corresponding to each of the landmark frames.  This information is
+       reported in an additional first column of the output file. </td>
+       </tr> <tr>
+       <td> <b> -lowmem </b> </td> <td> The memory requirements for dimlandmark increase as you increase the number of input points. If you are running with a very large number of input points and you are worried about the memory requirements of dimlandmark then you can run with this option and save memory.</td>
+       </tr>
+       </table> 
+    </div>
+  </div>
+  <script type="text/javascript">safe_toggle('cl-landmarks','use-cl-landmarks');</script>
+
+  <div class="cbox">
+    <div class="head" id="use-gismo-landmarks" onclick="safe_toggle('gismo-landmarks','use-gismo-landmarks');">
+       Do this using GISMO [+-]
+    </div>
+    <div class="body" id="gismo-landmarks" style="display: block;">
+      <img src="images/landmark-window.png"  width=350 alt="The gismo landmark window" class="floatleft" /> 
+      <p>
+      Once you have calculated colvars using GISMO you can perform landmark selection by selecting the <b>Extract landmark points</b> option
+      from the <b>Calculate</b> menu.  The window shown on the left will open. To select landmarks using farthest point sampling you should
+      select fps from the landmark selection mode menu.  When you perform fps you must calculate the distances between each of the points
+      in the trajectory.  As such in the top box you must select the collective variables that interest you.  Furthermore, if your CVs are
+      periodic you must calculate the distances between them using them minimum image convention.  To do this you should select the periodic
+      variables option and specify the periodicities of your variables in the period equals box.  If you have
+      CVs plotted in the GISMO main window you can show the locations of the landmarks on the particular 2D plane of interest by pressing
+      <b> Show landmarks</b>.  Pressing <b>Store landmarks</b> will generate a new molecule, which only contains the trajectory frames 
+      for the selected landmark points.  If you make this new molecule the top molecule you will find that all the CV data for the
+      landmark frames the original molecule has been copied to the new molecule.  You can thus make plots of the CV values for
+      your landmark frames by adjusting the x-axis and y-axis menus when the new, landmark-only, molecule is on top.
+      </p>
+    </div>
+  </div>
+  <script type="text/javascript">safe_toggle('gismo-landmarks','use-gismo-landmarks');</script>
+
+</div>

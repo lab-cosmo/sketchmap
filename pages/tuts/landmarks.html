@@ -1,0 +1,50 @@
+<div class="columns">
+
+  <img src="pages/tuts/ala_landmark.png" alt="100 minmax landmarks picked from 12ala data. Circles area is proportional to weight." class="floatleft"/>
+  <h2> Selecting landmark points </h2>
+  <p>
+  The sketch-map calculation is expensive and its expense increases sharply with the number of points whose projections you are
+  endeavoring to find simultaneously. Moreover, the iterative minimization has more chances of getting stuck in a  poor local minimum
+  when the number of variables to be optimized grows larger.  It is therefore not feasible to fit projections for all the points in the trajectory
+  at once. Hence, before running the sketch-map algorithm we must select a set of representative, landmark, points from the trajectory.
+  There are two strategies we use to do this selection:
+  </p>
+  
+  <ul>
+  <li> Select points randomly from the trajectory - <i>with this approach there are many landmarks in the vicinity of the basins and more poorly sampled regions are less well represented </i></li>
+  <li> Select points using a farthest point strategy - <i> the landmarks selected using this approach are more uniformly distributed across the whole of space which makes this approach succeptible to outliers </i></li>
+  </ul> 
+  
+  <p>
+     Both of these strategies are implemented in the <span class="code">dimlandmark</span> code. In most cases the farthest point
+     sampling is the recommended strategy, as it gives a thorough representation of the available data. 
+     Since it is however desirable to give more weight in the fitting to landmarks which represent densely populated regions of 
+     space, <span class="code">dimlandmark</span> also allows to assign weights proportional to the density
+     of samples surrounding each sample.
+  </p>
+  
+   <div class="cbox">
+   <div class="head" id="tut-lmark-head" onclick="safe_toggle('tut-lmark','tut-lmark-head');">
+      running <span class="code">dimlandmark</span> [+-]
+   </div>
+   <div class="body" id="tut-lmark" style="display: block;">
+      <p>
+      The <span class="code">dimlandmark</span> utility allows to select a small, representative subset 
+      of the high-dimensional data, so that dimensionality reduction can be performed more effectively. 
+      A 
+      </p>
+      <div class="code" >
+         dimlandmark -D 24 -n 1000 -pi 6.283185 -mode minmax -w -lowmem &lt; highd-dataset &gt; highd-landmarks
+      </div>
+      <p>
+      As for <span class="code">dimdist</span>, <span class="code">-D</span> and <span class="code">-pi</span>
+      options specify the dimensionality and the periodicity of the data. <span class="code">-mode</span> 
+      chooses the selection method (<span class="code">minmax</span> stands for farthest point sampling) and
+      <span class="code">-w</span> asks for weights to be generated for the points. See the --MANUAL-- page 
+      for a more detailed description and other options which may apply in different cases.
+      </p>
+   </div>
+   </div>
+  <script type="text/javascript">safe_toggle('tut-lmark','tut-lmark-head');</script>
+  
+</div>

@@ -1,0 +1,134 @@
+body{
+  background:#f9e9d0;
+  font-family:"Helvetica", Sans;
+  font-size:11pt;
+  margin:0; padding:0;
+}
+
+.floatright { margin: 0.5em 0em 0.5em 1em; float: right }
+.floatleft  { margin: 0.5em 1em 0.5em 0em; float: left  }
+.center  { margin: 0.5em auto 0.5em auto; clear:both; display:block;  }
+ul { padding-left:1em; margin:0 } li { margin:0; padding:0 }
+
+/* rounded corner box */
+div.roundedbox {
+    position: relative;
+    padding: 10px;
+    background: white;
+    width: 100%;
+}
+
+div.rbinside { }
+
+/* page layout elements */
+div.main {
+  text-align:center;
+}
+
+div.centered {
+  margin-left:auto;
+  margin-right:auto;
+  margin-top:0px; margin-bottom:0px;
+  background:transparent;
+  width:810px;
+  padding:10px;
+  text-align:center;
+}
+
+div.columns {
+  margin:0px;
+  text-align:justify;
+  clear:both;
+}
+
+div.lcolumn {
+  padding:10px;
+  padding-left:30px; 
+  width:360px;
+  clear:left; float:left;
+  background: transparent;
+}
+
+div.rcolumn {
+  padding:10px;
+  padding-right:30px; 
+  width:360px;
+  clear:right; float:right;
+  background: transparent;
+}
+
+div.footer {
+  padding:2px;
+  text-align:right; 
+}
+
+div.footer * {
+  vertical-align:middle;
+  float:right;
+}
+
+/* menu */
+div.menu {
+ vertical-align:middle; background: transparent; opacity:1.0;
+ width:auto;
+ text-align:left; 
+ padding:0.75em 0.5em 0.25em 0.5em; 
+}
+
+div.menu .menu {
+ border:2px; border-bottom:0px; border-style:solid; border-color:black;
+ text-align:center; background:#eebe8e;color:black; text-decoration:none; font-size:1.1em;
+ padding: 0.25em 0.5em 0.25em 0.5em; margin: 0 0.5em 0 0.5em;
+}
+
+div.menu .sel {
+  color:black; background:white; opacity:1.0;
+}
+
+div.menu .menu:hover {
+  background:#cf7f3f; color:white; 
+}
+
+
+/* sub-menu */
+div.menu .submenu {
+ border:2px; border-style:solid; border-color:black;
+ text-align:center; 
+ background:white; color:black;  opacity:1.0;
+ text-decoration:none; font-size:1.1em;
+ padding: 0.25em 0.5em 0.25em 0.5em; margin: 0 0.5em 0 0.5em;
+}
+
+div.menu .subsel {
+  background:#eebe8e;color:black; 
+}
+
+div.menu .submenu:hover {
+  background:#cf7f3f; color:white; 
+}
+
+/* collapsable boxes */
+div.cbox {
+  padding:0; margin:2em; background: #fff5f1; clear:both; display:block
+} 
+
+div.cbox .head {
+  background: #eebe8e; font-weight:bold;
+  padding:5px; margin:0; cursor:pointer;
+  }
+
+div.cbox .body {
+  padding:0.5em; margin:0; 
+  }
+
+/* links & c */
+a img { border:0 }
+
+.code {font-family:"Courier"; font-weight:bold;}
+
+div.code {
+   padding:1em; font-family:"Courier"; font-weight:bold;
+   background: #ffe4be;
+}
+
+

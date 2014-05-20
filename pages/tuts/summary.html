@@ -1,0 +1,41 @@
+<div class="columns">
+   <img src="pages/tuts/ala12_helix.jpg" alt="Dodecaalanine in a alpha-helix configuration" style="display:block; float:right;"/>
+   <h2> A sketch-map tutorial </h2>
+   <div>
+      This tutorials aims at being a "walk-through" to help you apply sketch map to your 
+      high-dimensional data.  We will use as an example a quite challenging case, namely
+      the mapping in two dimensions of a set of configurations of the model polypeptide dodeca-alanine
+      which are represented  by the 24 backbone dihedral angles. <br/>
+      Before you start, you should download and compile the <a href='compose.php?page=code'>sketch-map tools</a>.
+      You can then either experiment with the <a href='data/smap_tutorial_data.zip'>data file</a> for 
+      dodeca-alanine, or prepare your own data set in a file formatted with one sample per line,
+      e.g
+      <div class="code" style="width: 500px">
+        x<sub>1</sub>(1) x<sub>2</sub>(1) .... x<sub>D</sub>(1)<br/>
+        x<sub>1</sub>(2) x<sub>2</sub>(2) .... x<sub>D</sub>(2)<br/>        
+        ....
+      </div>
+   </div>
+   <p>
+      As with most of non-linear dimensionality reduction techniques, sketch-map works
+      by finding a set of low-dimensional points which reproduce the pair-wise similarity
+      between the samples of the high-dimensional data set. Whereas other NLDR methods
+      try to match some sort of distance between the points, sketch-map focuses on
+      reproducing proximity, i.e. making sure that points that are "close" in high dimension
+      will be "close" in low dimension, and those which are "far" in high dimension will
+      be "far" in high dimension. Finding a viable definition of proximity requires
+      some preliminary data analysis, which allows one to determine optiimal parameters
+      for running sketch-map.
+   </p>
+   <p>
+      The tutorial covers all the steps necessary to obtain a satisfactory low-dimensional
+      embedding, including:
+   </p>   
+   <ul>
+      <li> data analysis and selection of sketch-map parameters </li>
+      <li> selection of landmark points </li>
+      <li> the actual sketch-map optimization </li>
+      <li> out-of-sample embedding of the remaining configurations </li>
+   </ul>
+   
+</div>

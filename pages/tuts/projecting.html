@@ -1,0 +1,50 @@
+<div class="columns">
+   
+   <h2>  Out-of-sample embedding </h2>
+   
+   <p>
+      After the low-d embedding of the landmark points has been
+      worked out, one can use it to define a map which allows to
+      project additional points. In other terms, a set of sketch-map
+      collective coordinates can be computed for any configuration
+      of the system. This final step is delegated to the
+      <span class="code">dimred</span> utility.
+   </p>
+   
+   <div class="cbox">
+   <div class="head" id="tut-proj-head" onclick="safe_toggle('tut-proj','tut-proj-head');">
+      running <span class="code">dimproj</span>   [+-]
+   </div>
+   <div class="body" id="tut-proj" style="display: block;">
+      <p>
+         We need first to prepare two files with the landmarks, one containing
+         the high-dimensional coordinates (plus weights) and another containing the sketch-mapped
+         ones, without headers or extra columns. Then we run
+      </p>
+      <div class="code" >
+         dimproj -D 24 -d 2 -P highd-landmarks -p lowd-landmarks -pi 6.283185 -w 
+         -grid 15.0,21,201 -fun-hd 6,12,12 -fun-ld 6,1,2 -cgmin 3 < highd-new > lowd-new
+      </div>
+      <p>
+         Here most of the options correspond to those in the sketch-map step, 
+         given the close analogy between the sketch-map stress function and the
+         one which is used for the out-of-sample embedding. After having performed
+         a grid search based on the parameters provided, a few conjugate gradient
+         steps are performed (<span class="code">-cgmin</span>).
+      </p>
+   </div>
+   </div>
+   <script type="text/javascript">safe_toggle('tut-proj','tut-proj-head');</script>
+   
+
+   <p>   
+      The image below shows the embedding of the circa 50000 configurations of
+      the trajectory, colored as usual based on just one of the backbone dihedral.
+      Despite the fact that the landmarks are a very coarse sampling of the
+      configuration space, the out-of-sample sketch-map embedding separates nicely
+      between different structures, and shows a remarkably rich picture of the 
+      many metastable states accessible to this simple model polypeptide.
+   </p>
+   <img src="pages/tuts/ala_smap_proj.png" alt="Linear MDS embedding of 12-ala data, colored based on one of the dihedrals" class="center"/>
+   
+</div>

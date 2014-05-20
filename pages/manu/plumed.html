@@ -1,0 +1,66 @@
+<div class="columns">
+  <h2> Calculating collective variables </h2>
+  
+  <p>
+  We cannot perform dimensionality reduction on the trajectory directly because the trajectory will contain motions of the 
+  center of mass and rotations of the reference frame.  These motions take place in a six dimensional space and thus cannot
+  be represented in two dimensions.  What is more, there are often many parts of the system (water molecules for instance) 
+  whose motions are not particularly interesting.  As such the first step of our sketch-map calculation is to calculate the 
+  values of a set of collective variables (CVs).  These CVs should describe the structural transitions in the interesting part 
+  of the system and there can be many of them.  Obviously the best CVs to use will depend on the particular problem you are 
+  endeavoring to solve.  However, because one can use many of them, one set of CVs should work for many of the problems in a given class.    
+  </p>
+
+  <p>
+  Plumed is a useful tool that can be used to calculate collective variables.  This can be done either as a post-processing 
+  step on the output trajectory or on the fly as the calculation is running.  For more details as to how this is done and the 
+  various collective variables that one can employ please examine the plumed website at <a href="http://www.plumed-code.org">www.plumed-code.org</a>.  
+  </p>
+
+  <p>
+  <b> Obviously if you are not working with an MD trajectory you can skip this step of the process and work directly
+      on your high dimensionality data set.</b>
+  </div>
+  
+  <div class="cbox">
+   <div class="head" id="use-cl-cv" onclick="safe_toggle('cl-cv','use-cl-cv');">
+     Do this on the command line [+-]
+   </div>
+   <div class="body" id="cl-cv" style="display: block;">
+      <p>
+      To calculate collective coordinates from a trajectory we can use the driver utitility of <a href="http://www.plumed-code.org">plumed</a> and issue the following command:
+      </p>
+      <div class="code" >
+        driver -pdb template.pdb -dcd traj.dcd -plumed plumed.dat
+      </div>
+      <p>
+      This command calculates CVs and outputs their values into a file names <b>COLVAR</b>.  
+      Be aware that the sketch-map utitilities cannot read in a plumed-formatted COLVAR file directly.  
+      Hence, before running dimlandmarks, dimred or dimproj on the output of 
+      driver one must first remove the header and extract only those columnns containing the CV data.
+      </p>
+   </div>
+  </div>  
+  <script type="text/javascript">safe_toggle('cl-cv','use-cl-cv');</script>
+
+  <div class="cbox">
+    <div class="head" id="use-gismo-cv" onclick="safe_toggle('gismo-cv','use-gismo-cv');">
+       Do this using GISMO [+-]
+    </div>
+    <div class="body" id="gismo-cv" style="display: block;">
+          <img src="images/cv-calc-window.png"  width=300 alt="The cv calculation window" class="floatright"/>
+          <p>
+          GISMO provides a wrapper to the driver utitility of <a href="http://www.plumed-code.org">plumed</a>.  It can thus 
+          be used to calculate collective variables.  To use this feature
+          select <b>Calculate colvars</b> from the <b>Calculate</b> menu.  You will be prompted to select a plumed input file.
+          Once you have done this the window shown on the right will appear.  Using this window one can specify
+          the units of length inside your plumed.dat file and the location of the template file that plumed uses
+          to get the masses and charges of the atoms.  In many cases this information is not required and so we can thus 
+          press OK with impunity.  When the calculation is finished the CVs we have chosen to calculate will
+          appear in the x-axis and y-axis menus of the bottom pannel.   
+          </p>
+    </div>
+  </div>
+  <script type="text/javascript">safe_toggle('gismo-cv','use-gismo-cv');</script>
+
+</div>

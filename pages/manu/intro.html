@@ -1,0 +1,24 @@
+<div class="columns">
+<h2> Overview </h2>
+
+<p>
+  You can project a trajectory using sketch-map using either the command line sketch-map tools
+  or using the graphical interface to these tools that is part of the GISMO utility.  Generating
+  a projection is a four stage procedure: 
+</p>
+
+<ul>
+  <li> <b> plumed </b> use plumed to generate a lower dimensional representation of your trajectory. </li>
+  <li> <b> dimlandmark </b> select a set of representative, landmark points from your trajectory. </li>  
+  <li> <b> dimred </b> generate a projection of the landmark points. </li>
+  <li> <b> dimproj </b> project the remainder of the trajectory using out of sample embedding. </li> 
+</ul>
+
+<p>
+  The manual sections that follow describe the theory of each of these steps and give a step
+  by step guide for constructing a sketch-map.  Before trying to use the code we strongly
+  recommend that you read the <a href="http://www.pnas.org/content/108/32/13023">original paper</a> on the method. In the tutorial section 
+  guidance is given on how to select the sketch-map parameters in a number of example systems.   
+</p>
+
+</div>

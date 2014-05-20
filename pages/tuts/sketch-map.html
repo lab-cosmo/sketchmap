@@ -1,0 +1,196 @@
+<div class="columns">
+   
+   <h2> Running sketch-map </h2>
+   
+   <p>
+      Having determined some reasonable parameters which define 
+      "proximity" for the data set we want to project, we are now
+      ready to run sketch-map. The minimization procedure can be quite 
+      time-consuming, in particular if one is using many landmarks 
+      and/or very high dimensionality. The optimization is fully automated
+      using the shell script <span class="code">sketch-map.sh</span>,
+      which interactively asks the parameters to perform the minimization.
+   </p>
+   
+   <div class="cbox">
+   <div class="head" id="tut-script-head" onclick="safe_toggle('tut-script','tut-script-head');">
+      sketch-map by script: running <span class="code">sketch-map.sh</span>   [+-]
+   </div>
+   <div class="body" id="tut-script" style="display: block;">
+      <p>
+        First, make sure that the <span class="code">SMAPROOT</span> variable 
+        defined inside <span class="code">sketch-map.sh</span> actually points 
+        to where the sketch-map executables are stored. Then, it suffices to run
+      </p>
+      <div class="code" >
+         ./sketch-map.sh
+      </div>
+      <p>
+        and input the various options as they are required. <br/>
+        For instance, to run the kind of sketch-map optimization which is described in details 
+        below, the interactive session would look like
+      </p>
+      <div class="code" >
+Please enter the dimensionality of input data 24 <br/>
+Are points weighted [y/n]? y <br/>
+Please enter the periodicity of input data [0 if non-periodic] 6.2831853 <br/>
+Please enter the input data file name highd-landmarks <br/>
+Please enter the output data prefix lowd <br/>
+Please enter high dimension sigma, a, b [e.g. 6.0 2 6 ] 6 12 12 <br/>
+Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] 6 1 2 <br/>
+      </div>
+      <p>
+        The script will then proceed to produce many intermediate optimization steps. Read
+        below if you are interested into the details, otherwise just find the final optimization 
+        result into <span class="code">&lt;prefix&gt;.gmds</span>. The sketch-map 
+        coordinates of the landmarks are in the first two columns.
+      </p>
+   </div>
+   </div>
+   <script type="text/javascript">safe_toggle('tut-script','tut-script-head');</script>
+   
+   <br/>
+   <br/>
+   <br/>
+   <br/>
+
+   <h2> A detailed description of the process </h2>
+   
+   In order to better understand the inner workings of the minimization, we will
+   discuss in some length how to manually perform the steps which are automated
+   by the sketch-map script.
+
+   <img src="pages/tuts/ala_mdsplot.png" alt="Linear MDS embedding of 12-ala data, colored based on one of the dihedrals" class="floatright"/>
+   
+   <h3> Getting a starting map: running linear MDS </h3>
+   <p>
+      Sketch-map owes its flexibility to the fact of using an iterative minimization
+      of a strongly non-linear fitness function. The downside is that it is exposed
+      to the risk of getting stuck in a poor local minimum, which doesn't preserve
+      as well as possible the proximity relations found in the high-dimensional data. 
+      In order to generate a reasonable starting configuration for the low-dimensional
+      projections, we perform linear MDS by running <span class="code">dimred</span>
+      without any iterative minimization parameters. 
+   </p>
+   <p style="font-style:italic;"> 
+      Images show the two-dimensional embedding at different stages of 
+      the optimization (here after the initial linear MDS projection). 
+      Dots have areas proportional to the weight of the corresponding landmark, and 
+      are colored according to the value of one of the dihedrals
+      (so points of different colors should be projected far apart). 
+   </p>   
+   <div class="cbox">
+   <div class="head" id="tut-mds-head" onclick="safe_toggle('tut-mds','tut-mds-head');">
+      running linear MDS [+-]
+   </div>
+   <div class="body" id="tut-mds" style="display: block;">
+      <p>
+         You can get a linear MDS (PCA if the distance is Euclidean with no periodicity) 
+         by just running <span class="code">dimred</span> without iterative minimization options
+      </p>
+      <div class="code" >
+         grep -v \# highd-landmarks |  dimred -D 24 -pi 6.283185 -d 2 -w -center > lowd-mds
+      </div>
+      <p>
+         Note that  <span class="code">dimred</span> expects on standard input the sequence of the 
+         landmarks given as 
+      </p>
+      <div class="code">
+        x<sub>1</sub>(1) x<sub>2</sub>(1) .... x<sub>D</sub>(1)  [w(1)]<br/>
+        x<sub>1</sub>(2) x<sub>2</sub>(2) .... x<sub>D</sub>(2)  [w(1)]<br/>        
+        ....
+      </div>         
+      <p>
+         In this case we specify the <span class="code">-w</span> option, so the weights must be present
+         as the last entry on each line. Note that for MDS weights are ignored, but we keep them in the file 
+         as will be used for later steps. Comments lines which may be present in the landmark file should be 
+         deleted or filtered out as we are doing here.<br/>
+         The output will contain a just a list of the low-dimensional projections. If options are specified
+         which make the output more verbose, a header or some additional columns may be present as well.
+      </p>
+   </div>
+   </div>
+   <script type="text/javascript">safe_toggle('tut-mds','tut-mds-head');</script>    
+   
+   <img src="pages/tuts/ala_gmdsplot.png" alt="Linear MDS embedding of 12-ala data, colored based on one of the dihedrals" class="floatleft"/>
+   <h3> Iterative metric MDS and pointwise-global optimization </h3>
+      <p>      
+         Conventional MDS is not really trying to match pairwise distances in high dimension to low-dimension,
+         minimizing --write here chi2_id--. It is trying to do so <em>with the constraint of the embedding
+         being a linear projection</em>. This additional assumption makes the problem solvable with spectral
+         methods, but means that the projected distances won't match the original ones as well as they could. 
+         On the other hand, iterative minimization of the stress function is prone to getting stuck in local
+         minima. To partially circumvent this problem, <span class="code">dimred</span> allows one to
+         perform a <em>pointwise-global</em> optimization. This means that one the program tries to find the 
+         global minimum of the stress for one point at a time, keeping the others fixed, and performing
+         local conjugate-gradient steps whenever one projection is moved from its initial location. 
+         This global optimization is performed by grid search: the stress is computed on a coarse grid as
+         a function of the coordinates of the projected point. Then an interpolation is built on a finer 
+         grid, and one sees if there exists a node in the fine grid with lower stress than the current one.
+      </p>
+   <div class="cbox">
+   <div class="head" id="tut-gmds-head" onclick="safe_toggle('tut-gmds','tut-gmds-head');">
+      running metric MDS (with pointwise global optimization) [+-]
+   </div>
+   <div class="body" id="tut-gmds" style="display: block;">
+      <p>
+         We start from the embedding obtained by linear MDS and perform a metric MDS optimization
+         with pointwise-global steps by launching 
+      </p>
+      <div class="code" >
+         grep -v \# highd-landmarks |  dimred -D 24 -pi 6.283185 -d 2 -w -center -init lowd-mds -grid 10.0,21,201 -preopt 50 -gopt 3 > lowd-gmds-metric         
+      </div>
+      <p>
+         Here <span class="code">-grid gw,g1,g2</span> specifies the extent of the grid (which runs from -gw to gw in all directions),
+         the number of points in the coarse grid g1 and the number of points in the fine grid g2. <span class="code">-preopt</span>
+         indicates the number of conjugate-gradient steps to be performed before starting the pointwise-global procedure
+         and <span class="code">-gopt</span> the number of CG steps after each successful global move.
+         <span class="code">-init</span> specify a file with the initial embedding positions, which should just contain the 
+         d-dimensional embedding coordinates, one point per line.
+      </p>
+   </div>
+   </div>
+   <script type="text/javascript">safe_toggle('tut-gmds','tut-gmds-head');</script>       
+   
+   <p>
+      While the resulting embedding is still far from perfect, one can see how points with similar dihedrals start
+      clustering together, even though there is still considerable overlap and regions where all the values are
+      mixed up.
+   </p>
+   
+   <img src="pages/tuts/ala_smap_ani.gif" alt="Simulated annealing optimization of sketch-map: varying from metric MDS to sketchmap as imig goes to zero" class="floatright"/>
+   <h3> Finally - sketch-map </h3>
+   <p>
+      In simpler cases, it is now possible to just run again <span class="code">dimred</span>, starting from the 
+      metric MDS embedding, and perform sketch-map with the chosen parameters. In complex cases such as this one, where
+      the sketch-map embedding is very different (and much more informative!) than the metric MDS one, doing
+      sketch-map optimization directly may lead to a poor optimization -- just because the  very bad initial configuration.
+      In this case, it can prove very effective to perform a <em>simulated annealing</em> procedure in which 
+      the stress function of a metric MDS and that of sketch-map with the chosen parameters are mixed together,
+      and successive optimizations are performed with a decreasing fraction of the metric MDS stress.      
+   </p>
+   
+   <div class="cbox">
+   <div class="head" id="tut-anneal-head" onclick="safe_toggle('tut-anneal','tut-anneal-head');">
+      getting an optimized sketch-map embedding (simulated annealing) [+-]
+   </div>
+   <div class="body" id="tut-anneal" style="display: block;">
+      <p>
+         In order to perform sketch-map, we must specify the sketch-map function parameters 
+         &sigma;, a, b in both high and low dimension, with the options <span class="code">-fun-hd sigma,a,b</span>
+         and  <span class="code">-fun-ld sigma,a,b</span>:
+      </p>
+      <div class="code" >
+         grep --color=auto -v \# highd-landmarks | dimred -D 24 -pi 6.283185 -d 2 -w -center -init lowd-gmds-metric -grid 15.0,21,201 -fun-hd 6,12,12 -fun-ld 6,1,2 -imix 0.1 -preopt 50 -gopt 3 > lowd-gmds-smap_0.1      
+      </div>
+      <p>
+         <span class="code">-imix frac</span> specifies that a fraction frac of metric MDS stress will be
+         mixed with (1-frac) sketch-map stress. Ideally, one should proceed iteratively, running with 
+         say frac=0.1, and using the outcome embedding as the starting configuration from an optimization
+         with frac=0.01 and so on until the embedding does not change anymore.
+      </p>
+   </div>
+   </div>   
+   <script type="text/javascript">safe_toggle('tut-anneal','tut-anneal-head');</script>  
+   
+</div>
