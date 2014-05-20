@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<?php
+  parse_str($_SERVER["QUERY_STRING"]);
+  include("heads/default.php");
+
+  $xpage=explode(".",$page);
+  $page=$xpage[0];
+
+  function menu($item,$label)
+  {
+     global $page;
+     echo "<a class='menu ".($item==$page?"sel":"")."' href='compose.php?page=".$item."'>".$label."</a>";
+  }
+?>
+<body>
+<script type="text/javascript">
+   function toggle2(showHideDiv, switchTextDiv) {
+   	var ele = document.getElementById(showHideDiv);
+   	var text = document.getElementById(switchTextDiv);
+   	if(ele.style.display == "block") {
+         ele.style.display = "none";
+   		text.innerHTML = "expand +";
+     	}
+   	else {
+   		ele.style.display = "block";
+   		text.innerHTML = "collapse -";
+   	}
+   }
+   
+   function toggle(showHideDiv, switchTextDiv) {
+   	var ele = document.getElementById(showHideDiv);
+   	var text = document.getElementById(switchTextDiv);
+   	if(ele.style.display == "block") {
+         ele.style.display = "none";
+   		text.innerHTML = text.innerHTML.replace("-&nbsp;","+&nbsp;");
+     	}
+   	else {
+   		ele.style.display = "block";
+   		text.innerHTML = text.innerHTML.replace("+&nbsp;","-&nbsp;");
+   	}
+   }   
+
+//<![CDATA[
+   var txtControl='[+-]';
+   var txtCtrlExpanded='<span style="float:right; display:block; clear:none;">&nbsp;collapse&nbsp;-</span>';
+   var txtCtrlCollapsed='<span style="float:right; display:block; clear:none;">&nbsp;expand&nbsp;+</span>'; 
+//]]>   
+   function safe_toggle(showHideDiv, switchTextDiv) {
+   	var ele = document.getElementById(showHideDiv);
+   	var text = document.getElementById(switchTextDiv);
+   	text.innerHTML = text.innerHTML.replace(txtControl,txtCtrlExpanded)   	
+   	if(ele.style.display == "block") {
+         ele.style.display = "none";
+   		text.innerHTML = text.innerHTML.replace(txtCtrlExpanded,txtCtrlCollapsed);
+     	}
+   	else {
+   		ele.style.display = "block";
+   		text.innerHTML = text.innerHTML.replace(txtCtrlCollapsed,txtCtrlExpanded);
+   	}
+   }      
+</script>
+<!--<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-28501583-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+-->
+
+<div class="main">
+<div class="centered">
+ <div class="roundedbox" style="background: url('images/smap-logo.png');  padding-bottom:0px; border:2px; border-bottom:0px; border-style:solid; border-color:black;">
+ <div class="rbinside" style="padding-top:135px;">
+   <!--<img src="images/smap-logo.png" alt="sketch-MAP Logo" style="clear:both;"/> -->
+   <div class="menu" style="margin:10px -10px 0px -10px">
+ <?php
+     menu("main"," HOME ");
+     menu("refs", "PUBLICATIONS");
+     menu("code", "CODE");
+     menu("gismo", "GISMO");
+     menu("manu", "MANUAL");
+     menu("tuts", "TUTORIAL");
+ ?>
+</div>
+  </div></div>
+ <div class="roundedbox" style="background:white; border:2px; border-top:0px; border-style:solid; border-color:black;">
+ <div class="rb bl"></div><div class="rb br"></div>
+  <div class="rbinside">
+
+ <?php
+     include("pages/".$page.".php");
+ ?>
+
+ </div></div>
+</div>
+ <div class="footer">
+   <div> Hosted by&nbsp;
+   <a href="http://developer.berlios.de"><img src="http://developer.berlios.de/bslogo.php?group_id=11362" width="124" height="32"  alt="BerliOS Logo" /></a> 
+   </div>
+ </div>
+</div>
+</body>
+</html>
