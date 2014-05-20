@@ -1,0 +1,21 @@
+<script type="text/javascript">
+   // default subpage
+   pageQuery.psub = typeof pageQuery.psub !== "undefined" ?  pageQuery.psub : "summary"; 
+</script>   
+
+   <div class="columns">
+     <div class="menu" style="margin:10px -10px 0px -10px" id="submenu">
+      <script type="text/javascript">       
+       mkSubmenu("summary","summary");
+       mkSubmenu("analysis","analysis");
+       mkSubmenu("landmarks","landmarks");
+       mkSubmenu("sketch-map","sketch-map");  
+       mkSubmenu("results","results");
+       mkSubmenu("projecting","projecting");       
+       mkSubmenu("gnuplot","gnuplot");        
+      </script>
+     </div>
+      <script type="text/javascript">       
+       httpInclude("pages/tuts/"+pageQuery.psub+".html")
+      </script>
+   </div>

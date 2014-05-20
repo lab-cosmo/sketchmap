@@ -97,6 +97,13 @@ function mkMenu(item,label)
    menu.innerHTML = menu.innerHTML + " <a class='menu " + (item==pageQuery.page?"sel":"")+ "' href='index.html?page="+item+"'>"+label+"</a>";
 }
 
+function mkSubmenu(item,label)
+{
+   var submenu=document.getElementById("submenu");
+   submenu.innerHTML = submenu.innerHTML + "<a class='submenu "+(item==pageQuery.psub?"subsel":"submenu")+"' href='index.html?page="+pageQuery.page+"&amp;psub="+item+"'>"+label+"</a>";
+}
+
+
 function toggle2(showHideDiv, switchTextDiv) {
 	var ele = document.getElementById(showHideDiv);
 	var text = document.getElementById(switchTextDiv);
