@@ -1,0 +1,19 @@
+<script type="text/javascript">
+   // default subpage
+   pageQuery.psub = typeof pageQuery.psub !== "undefined" ?  pageQuery.psub : "intro"; 
+</script>   
+
+   <div class="columns">
+     <div class="menu" style="margin:10px -10px 0px -10px" id="submenu">
+     <script type="text/javascript">       
+       mkSubmenu("intro","overview");
+       mkSubmenu("plumed","plumed"); 
+       mkSubmenu("dimlandmark","dimlandmark");
+       mkSubmenu("dimred","dimred");
+       mkSubmenu("dimproj","dimproj");      
+     </script>
+     </div>
+      <script type="text/javascript">       
+       httpInclude("pages/manu/"+pageQuery.psub+".html")
+      </script>
+   </div>
