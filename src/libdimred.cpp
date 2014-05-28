@@ -11,8 +11,9 @@
 #include "interpol.hpp"
 #include "linalg.hpp"
 
-#include <boost/math/special_functions/gamma.hpp>
-
+#ifdef USE_BOOST
+  #include <boost/math/special_functions/gamma.hpp>
+#endif
 
 #ifdef ARPACK
 namespace tblapack {
@@ -65,13 +66,21 @@ inline void NLDRFunction::nldr_xsigmoid(double x, double &rf, double& rdf) const
 
 //returns a gamma-function sigmoid
 //pars[0]=1.0/(sigma sqrt[2]), pars[1]=N, pars[2]=2/gamma(N/2)
+#ifdef USE_BOOST
 inline double NLDRFunction::nldr_gamma(double x) const
 { double sx=x*pars[0];  return boost::math::gamma_q(pars[1]*0.5, sx*sx); }
 inline double NLDRFunction::nldr_dgamma(double x) const
 { double sx=x*pars[0];  return -pars[2]*pow(sx,pars[1]-1)*exp(-sx*sx)*pars[0]; }
 inline void NLDRFunction::nldr_gamma(double x, double &rf, double& rdf) const
 { double sx=x*pars[0];  rf=boost::math::gamma_q(pars[1]*0.5, sx*sx); rdf=-pars[2]*pow(sx,pars[1]-1)*exp(-sx*sx)*pars[0]; }
-
+#else
+inline double NLDRFunction::nldr_gamma(double x) const
+{ ERROR("libdimred has been compiled without BOOST support. gamma function is not available.") }
+inline double NLDRFunction::nldr_dgamma(double x) const
+{ ERROR("libdimred has been compiled without BOOST support. gamma function is not available.") }
+inline void NLDRFunction::nldr_gamma(double x, double &rf, double& rdf) const
+{ ERROR("libdimred has been compiled without BOOST support. gamma function is not available.") }
+#endif
 
 
 //this must return f^-1_LD(f(HD(x))
@@ -146,9 +155,13 @@ void NLDRFunction::set_mode(NLDRFunctionMode mode, const std::valarray<double>& 
         pf=&NLDRFunction::nldr_xsigmoid; pdf=&NLDRFunction::nldr_dxsigmoid; pfdf=&NLDRFunction::nldr_xsigmoid;
         break;
     case NLDRGamma:  //this must return gamma(N/2,(x/sigma)^2/2) sigma=np[0] N=np[1] 
+#ifndef USE_BOOST
+        ERROR("libdimred has been compiled without BOOST support. gamma function is not available.")
+#else
         if (npars.size()!=2) ERROR("Wrong number of parameters for Gamma transfer function");
         pars.resize(3); pars[0]=1.0/npars[0]/sqrt(2.0); pars[1]=npars[1]; pars[2]=2.0/boost::math::tgamma(npars[1]*0.5); 
         pf=&NLDRFunction::nldr_gamma; pdf=&NLDRFunction::nldr_dgamma; pfdf=&NLDRFunction::nldr_gamma;
+#endif
         break;        
     case NLDRWarp:  //this must return f^-1_d(d_D(x)) s=np[0] a_D=np[1] b_D=np[2] a_d=np[3] b_d=np[4]
         if (npars.size()!=5) ERROR("Wrong number of parameters for XSigmoid transfer function");
