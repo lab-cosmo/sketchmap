@@ -11,11 +11,17 @@
    <h3> Get the source using git </h3>
 
    <p> The latest development version of the sketch-map tools is stored in a git repository
-   you can access this repository by issuing the following command.
+   you can access this repository by issuing one of the following commands.
    </p>
 
+   HTTP:
    <div class="code">
-   git clone git://git.berlios.de/sketchmap
+   git clone https://github.com/epfl-cosmo/sketchmap.git
+   </div>
+
+   SSH:
+   <div class="code">
+   git clone git@github.com:epfl-cosmo/sketchmap.git
    </div>
 
    <p>
@@ -33,7 +39,7 @@
    make
    </div>
 
-   <p>Once the first of these commands has been issued a new directory called sketchmap-0.1 should be created. This contains 
+   <p>Once the first of these commands has been issued a new directory called sketchmap-0.2 should be created. This contains 
    the source files for the sketchmap tools and the Makefile that tells your computer how to compile the source. To compile
    the code on your computer it may be necessary to edit the make.in file. For example if you don't want to use the 
    g++ compiler then you should change the compiler inside the make.in file. To be clear though oftentimes you can compile the
