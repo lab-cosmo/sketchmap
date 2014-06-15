@@ -5,32 +5,32 @@
   xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
                       http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
  <url>
-  <loc>http://imx-cosmo.github.io/sketchmap/</loc>
+  <loc>http://epfl-cosmo.github.io/sketchmap/</loc>
   <changefreq>weekly</changefreq>
   <priority>1.0000</priority>
  </url>
  <url>
-  <loc>http://imx-cosmo.github.io/sketchmap/index.htm?page=tuts</loc>
+  <loc>http://epfl-cosmo.github.io/sketchmap/index.htm?page=tuts</loc>
   <changefreq>weekly</changefreq>
   <priority>0.5000</priority>
  </url>
  <url>
-  <loc>http://imx-cosmo.github.io/sketchmap/index.htm?page=manu</loc>
+  <loc>http://epfl-cosmo.github.io/sketchmap/index.htm?page=manu</loc>
   <changefreq>weekly</changefreq>
   <priority>0.5000</priority>
  </url>
  <url>
-  <loc>http://imx-cosmo.github.io/sketchmap/index.htm?page=gismo</loc>
+  <loc>http://epfl-cosmo.github.io/sketchmap/index.htm?page=gismo</loc>
   <changefreq>monthly</changefreq>
   <priority>0.5000</priority>
  </url>
  <url>
-  <loc>http://imx-cosmo.github.io/sketchmap/index.htm?page=refs</loc>
+  <loc>http://epfl-cosmo.github.io/sketchmap/index.htm?page=refs</loc>
   <changefreq>monthly</changefreq>
   <priority>0.5000</priority>
  </url>
  <url>
-  <loc>http://imx-cosmo.github.io/sketchmap/index.htm?page=code</loc>
+  <loc>http://epfl-cosmo.github.io/sketchmap/index.htm?page=code</loc>
   <changefreq>monthly</changefreq>
   <priority>0.5000</priority>
  </url>
