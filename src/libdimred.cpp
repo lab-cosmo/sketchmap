@@ -131,7 +131,7 @@ NLDRFunction& NLDRFunction::operator=(const NLDRFunction& nf)
     return *this;
 }
    
-void NLDRFunction::set_mode(NLDRFunctionMode mode, const std::valarray<double>& npars)
+void NLDRFunction::set_mode(NLDRFunctionMode mode, const std::valarray<double>& npars, bool interpol)
 {
     switch (mode) 
     {
@@ -170,6 +170,17 @@ void NLDRFunction::set_mode(NLDRFunctionMode mode, const std::valarray<double>& 
         pf=&NLDRFunction::nldr_warp; pdf=&NLDRFunction::nldr_dwarp; pfdf=&NLDRFunction::nldr_warp;
         break;        
     default: ERROR("Unsupported transfer function");
+    }
+    dointerpol=false;
+    if (interpol) 
+    {
+       dointerpol=true; ipxmax=0; 
+       ipf=(&NLDRFunction::nldr_ipol); ipdf=(&NLDRFunction::nldr_dipol);  
+       ipfdf=(&NLDRFunction::nldr_fdipol); 
+    }
+    else
+    {
+       ipf=pf; ipdf=pdf; ipfdf=pfdf;
     }
     pmode=mode;
 }
@@ -256,6 +267,15 @@ double NLDRMetricSphere::pdist(const double* a, const double* b, unsigned long n
     std::cerr<<"cos(d) "<<xy<<" >> "<<d<<"\n";
     */
     return d;
+}
+
+
+/*! A collection of metric functions */
+double NLDRMetricDot::pdist(const double* a, const double* b, unsigned long n) const
+{
+    double d=0.0;
+    for (unsigned long i=0; i<n; ++i) d+=(b[i]*a[i]);
+    return -log(d);
 }
 
 /*Builds neighbor list*/
@@ -1177,26 +1197,44 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
     pval=0.0; pgrad=0.0; 
     double dcw=1.0;
     
-    for (unsigned long i=0; i<n; i++)
-        for (unsigned long j=0; j<i; j++) 
-    { 
     
-    
-       // std::cerr<<i<<","<<j<<" : "<<ld(i,j)<<"\n";
-        tfun.fdf(ld(i,j),fld,dfld);
-        
-        wij=weights[i]*weights[j]*dcw;
-        if (dweights.size()>0) dwij=dweights(i,j); else dwij=1.0;
-        
-        tw+=wij;
-        pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *wij *dwij;
-        gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/ld(i,j) *wij *dwij;
+    if (dogradient)
+    {
+       for (unsigned long i=0; i<n; i++)
+           for (unsigned long j=0; j<i; j++) 
+       { 
+       
+       
+          // std::cerr<<i<<","<<j<<" : "<<ld(i,j)<<"\n";
+           tfun.fdf(ld(i,j),fld,dfld);
+           
+           wij=weights[i]*weights[j]*dcw;
+           if (dweights.size()>0) dwij=dweights(i,j); else dwij=1.0;
+           
+           tw+=wij;
+           pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *wij *dwij;
+           gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/ld(i,j) *wij *dwij;
 
-        for (unsigned long h=0; h<d; h++)
-        {
-            pgrad[i*d+h]+=gij*(coords[i*d+h]-coords[j*d+h]);
-            pgrad[j*d+h]-=gij*(coords[i*d+h]-coords[j*d+h]);
-        }
+           for (unsigned long h=0; h<d; h++)
+           {
+               pgrad[i*d+h]+=gij*(coords[i*d+h]-coords[j*d+h]);
+               pgrad[j*d+h]-=gij*(coords[i*d+h]-coords[j*d+h]);
+           }
+       }
+    }
+    else  // faster version without gradients
+    {
+       for (unsigned long i=0; i<n; i++)
+           for (unsigned long j=0; j<i; j++) 
+       { 
+           fld=tfun.f(ld(i,j));
+           
+           wij=weights[i]*weights[j]*dcw;
+           if (dweights.size()>0) dwij=dweights(i,j); else dwij=1.0;
+           
+           tw+=wij;
+           pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *wij *dwij;
+       }
     }
     pval*=1.0/tw;
     pgrad*=-2.0/tw;
@@ -1317,9 +1355,12 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
     AnnealingOptions saop(opts.saopts);
     ParaOptions ptop(opts.ptopts);    
     ConjGradOpts cgop(opts.cgopts);
+    NestSampOptions nsop(opts.nsopts);
+    
     if (cgop.maxiter==0) cgop.maxiter=opts.steps; 
     if (saop.steps==0) saop.steps=opts.steps; 
     if (ptop.steps==0) ptop.steps=opts.steps; 
+    if (nsop.steps==0) nsop.steps=opts.steps; 
     
     
     std::valarray<double> rpos; double rvalue;
@@ -1428,22 +1469,33 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
     }
     else
     {
+        std::cerr<<"Starting iterative optimization...\n";
         switch (opts.minmode)
         {
             case NLDRCGradient:
                 min_conjgrad(chiobj,pcoords,rpos, rvalue, cgop );
                 break;
             case NLDRSimplex:
+                chiobj.dogradient=false;
                 min_simplex(chiobj,make_simplex(pcoords,opts.simplex_spread, opts.simplex_mult),pcoords,ferr, iops);
                 break;
+            case NLDRNestSamp:
+                std::cerr<<"Testing nested sampling...\n";
+                chiobj.dogradient=false;
+                nsop.mc_wall=opts.nssize;
+                min_nestsamp(chiobj,make_walkers(pcoords.size(),opts.nswalkers,opts.nssize), pcoords, ferr, iops, nsop);
+                break;
             case NLDRAnnealing:
+                chiobj.dogradient=false;
                 sim_annealing(chiobj,pcoords,rpos,rvalue,saop);
                 break;
             case NLDRParatemp:
                 para_temp(chiobj,pcoords,rpos,rvalue,ptop);
                 break;                
         }
+        chiobj.dogradient=true;
     }
+    
     
     chiobj.get_vars(pcoords);
     for (unsigned long i=0; i<proj.n; i++) 

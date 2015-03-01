@@ -12,14 +12,15 @@ using namespace toolbox;
 void banner()
 {
     std::cerr
-            << " USAGE: dimproj -D hi-dim -d low-dim -P hd-file -p ld-file [-pi period] [-w]    \n"
-            << "               [-grid gw,g1,g2 ] [-cgmin st] [-gt temp] [-path lambda]          \n"
+            << " USAGE: dimproj -D hi-dim -d low-dim -P hd-file -p ld-file [-pi period] [-dot]  \n"
+            << "               [-w] [-grid gw,g1,g2 ] [-cgmin st] [-gt temp] [-path lambda]     \n"
             << "               [-fun-hd s,a,b] [-fun-ld s,a,b] [-h] [-print]       < input      \n"
             << "                                                                                \n"
             << " computes the projection of the points given in input, given landmark points.   \n"
             << " dimension is set by -D option, and the projection is performed down to the     \n"
             << " dimensionality specified by -d. Optionally, high-dimensional data may be       \n"
-            << " assumed to lie in a hypertoroidal space with period -pi.                       \n"
+            << " assumed to lie in a hypertoroidal space with period -pi. -dot uses a scalar    \n"
+            << " product based distance.                                                        \n"
             << " A global minimization is performed on a grid ranging between -gw and +gw in d  \n"
             << " dimensions. First, the stress function is computed on g1 points per dim, then  \n"
             << " an interpolated grid with g2 points is evaluated, and the min selected.        \n"
@@ -42,7 +43,7 @@ int main(int argc, char**argv)
 {
     CLParser clp(argc,argv);
     unsigned long D,d,n,cgsteps; double gtemp, lambda;
-    std::string fP, fp, fdhd, fdld, gpars; bool fhelp, fprint, fweight;
+    std::string fP, fp, fdhd, fdld, gpars; bool fhelp, fdot, fprint, fweight;
     double peri, speri;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) &&
             clp.getoption(d,"d",(unsigned long) 2) &&
@@ -56,6 +57,7 @@ int main(int argc, char**argv)
             clp.getoption(fdld,"fun-ld",std::string("identity")) &&
             clp.getoption(fhelp,"h",false) &&
             clp.getoption(fweight,"w",false) &&
+            clp.getoption(fdot,"dot",false) &&
             clp.getoption(fprint,"print",false) &&
             clp.getoption(peri,"pi",0.0) &&
             clp.getoption(speri,"spi",0.0);
@@ -96,13 +98,21 @@ int main(int argc, char**argv)
 
     NLDRProjection nlproj; NLDROptions opts;
     NLDRMetricPBC nperi; NLDRMetricEuclid neuclid;
-    NLDRMetricSphere nsphere;
+    NLDRMetricSphere nsphere; NLDRMetricDot ndot;
     nperi.periods.resize(D); nperi.periods=peri;
     nsphere.periods.resize(D); nsphere.periods=speri;
 
     if (peri==0.0 && speri==0.0) opts.nopts.ometric=&neuclid;
     else if (speri==0) { opts.nopts.ometric=&nperi; }
     else { opts.nopts.ometric=&nsphere; std::cerr<<"Spherical geodesic distances\n"; }
+
+    if (fdot) 
+    {
+       std::cerr<<"Using dot product distance!\n";
+       if (peri!=0 || speri!=0) ERROR("Cannot use periodic options together with dot product distance.");
+       opts.nopts.ometric=&ndot;
+    }
+    
 
     std::valarray<double> tfpars;
     std::valarray<double> fhdpars(0.0,3), fldpars(0.0,3), fgrid(0.0,3);

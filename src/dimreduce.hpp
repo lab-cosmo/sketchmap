@@ -8,6 +8,7 @@
 #define __DIMREDUCE_H 0
 #include "tbdefs.hpp"
 #include "minsearch.hpp"
+#include "interpol.hpp"
 #include "matrix-full.hpp"
 #include "matrix-crs.hpp"
 
@@ -19,7 +20,8 @@ class NLDRFunction {
     typedef void (NLDRFunction::*NLDRFPc)(double, double&, double&) const;
 private:
     NLDRFP pf, pdf; NLDRFPc pfdf;
-    NLDRFunctionMode pmode;
+    NLDRFP ipf, ipdf; NLDRFPc ipfdf;
+    NLDRFunctionMode pmode; 
     std::valarray<double> pars;
 
     double nldr_identity(double x) const;
@@ -45,16 +47,21 @@ private:
     double nldr_dwarp(double x) const;
     void nldr_warp(double x, double& rf, double& rdf) const;
 
+    bool dointerpol; double ipxmax; InterpolateSpline ipspline;
+    double nldr_ipol(double x) const; 
+    double nldr_dipol(double x) const;
+    void nldr_fdipol(double x, double& rf, double& rdf) const;
+        
 public:
     
     NLDRFunction(NLDRFunctionMode nmode=NLDRIdentity, const std::valarray<double>& npars=std::valarray<double>()) { set_mode(nmode,npars); }
     NLDRFunction(const NLDRFunction& nf); 
     NLDRFunction& operator=(const NLDRFunction& nf); 
     
-    void set_mode(NLDRFunctionMode mode, const std::valarray<double>& pars);
-    inline double f(double x) const { return (this->*pf)(x); }
-    inline double df(double x) const { return (this->*pdf)(x); };
-    inline void fdf(double x, double& rf, double& rdf) const { (this->*pfdf)(x,rf, rdf); }
+    void set_mode(NLDRFunctionMode mode, const std::valarray<double>& pars, bool interpol=false);
+    inline double f(double x) const { return (this->*ipf)(x); }
+    inline double df(double x) const { return (this->*ipdf)(x); };
+    inline void fdf(double x, double& rf, double& rdf) const { (this->*ipfdf)(x,rf, rdf); }
 }; 
 
 double nldr_identity(const double& x);
@@ -128,6 +135,12 @@ class NLDRMetricSphere: public NLDRMetric {
         NLDRMetricSphere& operator= (const NLDRMetricSphere& no) 
         { if (&no==this) return *this; periods.resize(no.periods.size()); periods=no.periods; }
 };
+
+class NLDRMetricDot: public NLDRMetric {
+    private: 
+        double pdist(const double* a, const double* b, unsigned long d) const;
+};
+
 
 enum NLDRNeighborGreediness { NLDRGreedy, NLDRLiberal, NLDRAsym }; 
 class NLDRNeighborOptions{
@@ -296,7 +309,7 @@ public:
 };
 
 
-enum NLDRIterMin { NLDRSimplex, NLDRCGradient, NLDRAnnealing, NLDRParatemp };
+enum NLDRIterMin { NLDRSimplex, NLDRCGradient, NLDRAnnealing, NLDRParatemp, NLDRNestSamp };
 
 class NLDRITEROptions
 {
@@ -311,7 +324,9 @@ public:
     AnnealingOptions saopts;
     ConjGradOpts cgopts;
     ParaOptions ptopts;
+    NestSampOptions nsopts;
     double simplex_spread, simplex_mult;
+    double nssize; unsigned long nswalkers;
     
     NLDRITEROptions() : tfunH(NLDRIdentity), tfunL(NLDRIdentity), metric(NULL), verbose(false), 
                    lowdim(2), global(false), grid1(11), grid2(101), gridw(20.0), imix(0.0), ipoints(),
@@ -327,6 +342,8 @@ public:
                        cgopts.maxiter=0;
                        cgopts.linesearch.maxiter=5; cgopts.linesearch.lstol=5e-10; 
                        simplex_spread=1.0; simplex_mult=1.1;
+                       
+                       nssize=1.0; nswalkers=50;
                    }
 };
 
@@ -340,7 +357,7 @@ class NLDRITERChi: public toolbox::FOnlyMinFunctionBase {
 private:
     double pval; std::valarray<double> pgrad;
 public:
-    unsigned long n; unsigned long d; 
+    unsigned long n; unsigned long d; bool dogradient;
     double imix;
     NLDRFunction tfun;
     FMatrix<double> hd, fhd;
@@ -349,7 +366,7 @@ public:
     void set_vars(const std::valarray<double>& rv); 
     void get_value(double& rv) const;
     void get_gradient(std::valarray<double>& rv) const;
-    NLDRITERChi() : n(0), d(0), imix(0.0) {}
+    NLDRITERChi() : n(0), d(0), imix(0.0), dogradient(true) {}
 };
 
 void NLDRLLE(FMatrix<double>& points, NLDRProjection& proj, const NLDRLLEOptions& opts, NLDRLLEReport& report);
