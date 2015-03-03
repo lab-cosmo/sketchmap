@@ -14,22 +14,32 @@ namespace toolbox {
     
 class InterpolateBicubic;
 
+// Old - uses the previous table value as the starting point
+// Uniform - assumes the bins are uniformly spaced
+// Bisect - searches by bisection 
+enum ODGHeuristics { ODGHOld, ODGHBisect, ODGHUniform };
+
 class OneDGauge {
 private:
     std::valarray<double> xlist;
+    long search(const double& x);
     long search1(const double& x);
+    long search2(const double& x);
     long jold, n;
+    double a, b, c, m, idx;
+    void setconst() { jold=0; a=xlist[0]; b=xlist[n-1]; c=b-a; idx=(n-1)/c; m=0.5*(b+a); }
 
 public:
-    double& operator[] (const unsigned long i)      { return xlist[i]; }
-    double operator[] (const unsigned long i) const { return xlist[i]; }
-    long operator() (const double x) { return search1(x); }
+    ODGHeuristics heuristics;
+    inline double& operator[] (const unsigned long i)      { return xlist[i]; }
+    inline double operator[] (const unsigned long i) const { return xlist[i]; }
+    inline long operator() (const double x) { if (heuristics==ODGHUniform) return search2(x); else if (heuristics==ODGHOld) return search1(x); else return search(x); }
     
-    void set_table(const std::valarray<double>& nlist) { xlist.resize(n=nlist.size()); xlist=nlist; jold=0; }
-    OneDGauge(const std::valarray<double>& nlist=std::valarray<double>()) : xlist(nlist) { n=xlist.size(); jold=0; }
+    void set_table(const std::valarray<double>& nlist) { xlist.resize(n=nlist.size()); xlist=nlist; this->setconst(); }
+    OneDGauge(const std::valarray<double>& nlist=std::valarray<double>()) : xlist(nlist), heuristics(ODGHBisect) { n=xlist.size(); this->setconst(); }
     
-    OneDGauge(const OneDGauge& ng) { xlist.resize(n=ng.xlist.size()); xlist=ng.xlist; jold=ng.jold; }
-    OneDGauge& operator =(const OneDGauge& ng) { if (&ng==this) return *this; xlist.resize(n=ng.xlist.size()); xlist=ng.xlist; jold=ng.jold;  return *this; }
+    OneDGauge(const OneDGauge& ng) { xlist.resize(n=ng.xlist.size()); xlist=ng.xlist; jold=ng.jold; heuristics=ng.heuristics; }
+    OneDGauge& operator =(const OneDGauge& ng) { if (&ng==this) return *this; xlist.resize(n=ng.xlist.size()); xlist=ng.xlist; jold=ng.jold; heuristics=ng.heuristics; this->setconst(); return *this; }
 };
 
 /* ONE-D SPLINE INTERPOLATION */
@@ -45,9 +55,11 @@ private:
     double dintrp(long j, const double& x);
     
 public:
-    void set_table(std::valarray<double>& nxlist, std::valarray<double>& nylist);
+    void set_table(std::valarray<double>& nxlist, std::valarray<double>& nylist, ODGHeuristics gh=ODGHOld);
     inline double operator() (const double& x) { return intrp(xgauge(x),x); }
     inline double d(const double& x)           { return dintrp(xgauge(x),x); }
+    inline void fd(const double& x, double& y, double& dy)           { long xg=xgauge(x);  y=intrp(xg,x); dy=dintrp(xg,x); }
+    
     
     InterpolateSpline() : xgauge(), n(0) {}
     InterpolateSpline(std::valarray<double>& nxlist, std::valarray<double>& nylist) { set_table(nxlist,nylist); }

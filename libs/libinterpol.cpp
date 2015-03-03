@@ -12,6 +12,7 @@ namespace toolbox {
 long OneDGauge::search1(const double& x)
 {
     long jl=jold,ju,jm,inc=1;
+        
     if (n<2) ERROR("Invalid size of interpolation arrays");
     if (jl<0 || jl>=n) { jl=0; ju=n-1; }
     else 
@@ -40,16 +41,37 @@ long OneDGauge::search1(const double& x)
     }
     while (ju-jl>1) 
     {
-        jm=(ju+jl)/2;
+        jm=(ju+jl) >> 1;
         if (x>xlist[jm]) jl=jm; else ju=jm;
     }
     jold=jl;
     return jl;
 }
 
-void InterpolateSpline::set_table(std::valarray<double>& nxlist, std::valarray<double>& nylist)
+long OneDGauge::search(const double& x)
+{
+   unsigned long ju,jm,jl;
+   jl=0;
+   ju=n;
+   while (ju-jl > 1) {
+      jm=(ju+jl) >> 1;
+      if (x >= xlist[jm]) jl=jm;
+      else ju=jm;
+   }
+   return jl;
+}
+
+long OneDGauge::search2(const double& x)
+{   
+   //std::cerr<<search1(x)<<"  "<<search(x)<<"  "<<((x-a)*idx)<<" "<<(long) ((x-a)*idx)<<" ,"<<idx<<" idx\n";
+   //std::cerr<<x<<"  "<<xlist[search1(x)]<<"base\n";
+   //std::cerr<<x<<"  "<<xlist[(long) ((x-a)*idx)]<<"new\n";
+   return (long) ((x-a)*idx);  }
+
+void InterpolateSpline::set_table(std::valarray<double>& nxlist, std::valarray<double>& nylist, ODGHeuristics gh)
 {
     xgauge=OneDGauge(nxlist);  n=nxlist.size(); 
+    xgauge.heuristics=gh;
     if (n!=nylist.size()) ERROR("X and Y lists size mismatch in constructor\n");
     ylist.resize(n); ylist=nylist;
     

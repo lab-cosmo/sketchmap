@@ -95,7 +95,7 @@ inline double NLDRFunction::nldr_warp(double x) const
 inline double NLDRFunction::nldr_dwarp(double x) const
 { double fx=nldr_xsigmoid(x), dfx=nldr_dxsigmoid(x);  return dg(fx)*dfx; }
 inline void NLDRFunction::nldr_warp(double x, double &rf, double& rdf) const
-{ double fx, dfx; nldr_xsigmoid(x,fx,dfx); rf=g(fx); rdf=df(fx)*dfx; }
+{ double fx, dfx; nldr_xsigmoid(x,fx,dfx); rf=g(fx); rdf=dg(fx)*dfx; }
 
 
 
@@ -180,9 +180,72 @@ void NLDRFunction::set_mode(NLDRFunctionMode mode, const std::valarray<double>& 
     }
     else
     {
-       ipf=pf; ipdf=pdf; ipfdf=pfdf;
+       ipf=(vNLDRFP)(pf); ipdf=(vNLDRFP)(pdf); ipfdf=(vNLDRFPc)(pfdf);
     }
     pmode=mode;
+}
+
+#define NLDR_INTERPOL_EPS 5e-3
+void NLDRFunction::mkinterpol(double mx)
+{
+   if (mx<ipxmax) return;
+   
+   
+   ipxmax = mx*1.2; // give some extra space for interpolation
+   double x=0.0, y, dy, dx;
+   std::vector<double> vx, vy, vdy;
+   vx.push_back(0.0); vy.push_back(0.0); vdy.push_back(0.0); 
+   x=1e-10*ipxmax;   
+   
+   /* adaptive grid
+   while (x<ipxmax)
+   {
+       (this->*pfdf)(x, y, dy);
+       vx.push_back(x);
+       vy.push_back(y);
+       vdy.push_back(dy);
+       std::cerr<<"%% "<< x<<" " <<y<<"\n";
+       //adaptive x step to get constant "scaled segment" length (dx/mx)**2+(dx*dy)**2==eps^2
+       dx=NLDR_INTERPOL_EPS/sqrt(dy*dy+1.0/(ipxmax*ipxmax));
+       x+=dx;   
+   }
+   */
+   dx=ipxmax/399;
+   x=dx;
+   while (x<ipxmax)
+   {
+      (this->*pfdf)(x, y, dy);
+       //std::cerr<<"%% "<< x<<" " <<y<<"\n";
+       vx.push_back(x);
+       vy.push_back(y);
+       vdy.push_back(dy);
+       x+=dx;
+       
+    }
+    
+   std::cerr<<"SIZE OF INTERPOLATION GRID "<<vx.size()<<"\n";
+   std::valarray<double> vax(vx.data(),vx.size()), vay(vy.data(),vy.size()), vady(vdy.data(),vdy.size());
+   
+   //!TODO use the derivatives, since we have it!
+   ipspline.set_table(vax, vay, ODGHUniform);
+}
+
+double NLDRFunction::nldr_ipol(double x)
+{
+   mkinterpol(x);
+   return ipspline(x);
+}
+
+double  NLDRFunction::nldr_dipol(double x)
+{
+   mkinterpol(x);
+   return ipspline.d(x);
+}
+
+void  NLDRFunction::nldr_fdipol(double x, double& rf, double& rdf)
+{
+   mkinterpol(x);
+   ipspline.fd(x,rf,rdf);
 }
 
 /*! A collection of metric functions */
@@ -1178,14 +1241,23 @@ void NLDRMDS(FMatrix<double>& points, NLDRProjection& proj, const NLDRMDSOptions
     } //ends if (opts.mode!=TMDS)
 }
 
+void NLDRITERChi::set_weights(const std::valarray<double>& weights, const FMatrix<double>& dweights)
+{  
+    pweights.resize(0,0);
+    if (dweights.rows()==n) pweights = dweights; 
+    if (weights.size()==n) 
+    {
+       if (pweights.size()==0) { pweights.resize(n,n); pweights=1.0; }
+       for (unsigned long i=0; i<n; ++i) for (unsigned long j=0; j<n; ++j) pweights(i,j)*=weights[i]*weights[j]; 
+    }
+}
+
 void NLDRITERChi::set_vars(const std::valarray<double>& rv) 
 { 
     if (coords.size()!=rv.size()) 
-    {
-        coords.resize(rv.size()); 
-        pgrad.resize(rv.size());
-    }
+    {   coords.resize(rv.size());  pgrad.resize(rv.size());   }
     coords=rv;
+    
     //std::cerr<<"finding distances\n";
     FMatrix<double> ld(n,n); ld*=0.0;
     for (unsigned long i=0; i<n; i++)
@@ -1193,9 +1265,8 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
     { ld(j,i)=ld(i,j)=metric->dist(&coords[i*d], &coords[j*d],d);  }
     
     //std::cerr<<"LOW-DIM DISTANCES" <<ld<<"\n";
-    double fld, dfld, gij, wij, tw=0.0, dwij;
+    double fld, dfld, gij, tw=0.0;
     pval=0.0; pgrad=0.0; 
-    double dcw=1.0;
     
     
     if (dogradient)
@@ -1208,12 +1279,9 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
           // std::cerr<<i<<","<<j<<" : "<<ld(i,j)<<"\n";
            tfun.fdf(ld(i,j),fld,dfld);
            
-           wij=weights[i]*weights[j]*dcw;
-           if (dweights.size()>0) dwij=dweights(i,j); else dwij=1.0;
-           
-           tw+=wij;
-           pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *wij *dwij;
-           gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/ld(i,j) *wij *dwij;
+           tw+=pweights(i,j);
+           pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *pweights(i,j);
+           gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/ld(i,j)  *pweights(i,j);
 
            for (unsigned long h=0; h<d; h++)
            {
@@ -1224,17 +1292,29 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
     }
     else  // faster version without gradients
     {
-       for (unsigned long i=0; i<n; i++)
-           for (unsigned long j=0; j<i; j++) 
-       { 
-           fld=tfun.f(ld(i,j));
-           
-           wij=weights[i]*weights[j]*dcw;
-           if (dweights.size()>0) dwij=dweights(i,j); else dwij=1.0;
-           
-           tw+=wij;
-           pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *wij *dwij;
+       if (pweights.size()>0 || imix!=0)
+       {
+          for (unsigned long i=0; i<n; i++)
+              for (unsigned long j=0; j<i; j++) 
+          { 
+              fld=tfun.f(ld(i,j));
+
+              tw+=pweights(i,j);
+              pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *pweights(i,j);
+          }
+       } 
+       else  // simplified version without weights or mixing      !TODO THIS ACTUALLY MISSES UP ON THE POINT WEITGHTS
+       {
+          tw=n*(n-1)*0.5;
+          for (unsigned long i=0; i<n; i++)
+              for (unsigned long j=0; j<i; j++) 
+          { 
+              fld=tfun.f(ld(i,j));
+              pval+=(fhd(i,j)-fld)*(fhd(i,j)-fld);
+           }
+          
        }
+      
     }
     pval*=1.0/tw;
     pgrad*=-2.0/tw;
@@ -1251,7 +1331,7 @@ void NLDRITERChi::get_gradient(std::valarray<double>& rv) const
     rv=pgrad;
 }
 
-void compute_chi1(const std::valarray<double>& x, const std::valarray<double>& w, const double& imix, const NLDRFunction& tfun, FMatrix<double>& md, FMatrix<double>& mfd, FMatrix<double> p, long skipi, double& vv, std::valarray<double>& vg)
+void compute_chi1(const std::valarray<double>& x, const std::valarray<double>& w, const double& imix, NLDRFunction& tfun, FMatrix<double>& md, FMatrix<double>& mfd, FMatrix<double> p, long skipi, double& vv, std::valarray<double>& vg)
 {
     unsigned long n=p.rows(), d=x.size();
     std::valarray<double> vx(x);
@@ -1286,39 +1366,36 @@ void compute_chi1(const std::valarray<double>& x, const std::valarray<double>& w
 }
 
 
-void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptions& opts, NLDRITERReport& report, const FMatrix<double>& outd)
+void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, NLDRITEROptions& opts, NLDRITERReport& report, const FMatrix<double>& outd)
 {
         
     if (opts.metric==NULL) ERROR("Uninitialized metric pointer\n");
     proj.P=points; proj.D=points.cols(); proj.d=opts.lowdim; proj.n=points.rows();
     proj.p.resize(proj.n,proj.d);
     
-    NLDRITERChi chiobj; chiobj.hd.resize(proj.n,proj.n);
-    chiobj.fhd.resize(proj.n,proj.n); chiobj.n=proj.n; chiobj.d=proj.d;
-    chiobj.metric=new NLDRMetricEuclid; chiobj.tfun=opts.tfunL; 
-    chiobj.weights.resize(proj.n); if (opts.weights.size()==0) chiobj.weights=1.0; else chiobj.weights=opts.weights; chiobj.imix=opts.imix;
-    if (opts.dweights.size()==0) chiobj.dweights.resize(0,0); else chiobj.dweights=opts.dweights;
+    NLDRITERChi chiobj; 
+        
+    FMatrix<double> hd(proj.n,proj.n), fhd(proj.n,proj.n);
     
     std::valarray<double> pcoords(proj.n*proj.d); 
-    FMatrix<double> distHD(chiobj.fhd), distLD(proj.n,proj.n);
-    
-    
+    FMatrix<double> distHD(proj.n,proj.n), distLD(proj.n,proj.n);
+        
     if (outd.cols()==proj.n)
-    {  chiobj.fhd=outd; }
+    {  fhd=outd; }
     else
     {
        //distance data provided in input
        std::cerr<<"Building distance matrix\n";
        for (unsigned long i=0; i<proj.n; i++)
        {
-           chiobj.fhd(i,i)=0;
+           fhd(i,i)=0;
            for (unsigned long j=0; j<i; j++) {
-               chiobj.fhd(i,j)=chiobj.fhd(j,i)=opts.metric->dist(&(const_cast<FMatrix<double>&>(points)(i,0)), &(const_cast<FMatrix<double>&>(points)(j,0)), proj.D); 
+               fhd(i,j)=fhd(j,i)=opts.metric->dist(&(const_cast<FMatrix<double>&>(points)(i,0)), &(const_cast<FMatrix<double>&>(points)(j,0)), proj.D); 
            }
        }    
     }
 
-    chiobj.hd=chiobj.fhd; //!TEST
+    hd=fhd; 
     
     if (opts.ipoints.size()==0)
     {
@@ -1326,7 +1403,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
         NLDRMDSOptions mdsopts; NLDRMDSReport mdsreport;
         mdsopts.lowdim=proj.d; mdsopts.verbose=false; 
         mdsopts.mode=MDS; mdsopts.metric=opts.metric;
-        NLDRMDS(points, proj, mdsopts, mdsreport, chiobj.fhd);
+        NLDRMDS(points, proj, mdsopts, mdsreport, fhd);
     }
     else proj.p=opts.ipoints;
     
@@ -1337,12 +1414,17 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
     
     for (unsigned long i=0; i<proj.n; i++)
         for (unsigned long j=0; j<i; j++)  { 
-        chiobj.fhd(j,i)=chiobj.fhd(i,j)=opts.tfunH.f(chiobj.fhd(i,j));
-       // std::cerr<<chiobj.hd(i,j)<<", "<<chiobj.fhd(i,j)<<", "<<chiobj.dfd(chiobj.hd(i,j))<<"\n"; 
+        fhd(j,i)=fhd(i,j)=opts.tfunH.f(fhd(i,j));
         }
-        
-        
-     std::cerr<<"Setting up pcoords\n";
+   
+    // prepares the Chi2 evaluation object
+    chiobj.metric=new NLDRMetricEuclid; chiobj.tfun=opts.tfunL; chiobj.imix=opts.imix;
+    
+    chiobj.set_hd(hd, fhd);
+    chiobj.d=proj.d;
+    chiobj.set_weights(opts.weights, opts.dweights);     
+     
+    std::cerr<<"Setting up pcoords\n";
     chiobj.set_vars(pcoords); 
 
      std::cerr<<"Setting up iteroptions\n";
@@ -1379,8 +1461,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
         
         std::cerr<<"Pointwise global minimization\n";
         for (unsigned long ip=0; ip<proj.n; ip++)
-        {
-            std::cerr<<"Minimizing pt. "<<ip<<", weight: "<<chiobj.weights[ip]<<"\n";
+        {            
             unsigned long ngrid=opts.grid1; double wgrid=opts.gridw;
             if (proj.d!=2) ERROR ("Integral projector is implemented only for 2D");
             std::valarray<double> gx(ngrid), gy(ngrid);
@@ -1402,7 +1483,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
                 for (unsigned long j=0; j<ngrid; j++)
             {
                 x[0]=gx[i]; x[1]=gy[j];
-                compute_chi1(x,chiobj.weights,chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,gridU(i,j),rg);
+                compute_chi1(x,chiobj.pweights.row(i),chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,gridU(i,j),rg);
                 //std::cerr<<x[0]<<","<<x[1]<<">>"<<gridU(i,j)<<":"<<rg[0]<<","<<rg[1]<<"\n";
                 gridDU(i,j,0)=rg[0];  gridDU(i,j,1)=rg[1];
             }
@@ -1419,7 +1500,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
             
             
             x0[0]=x[0]=proj.p(ip,0); x0[1]=x[1]=proj.p(ip,1); 
-            compute_chi1(x,chiobj.weights,chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,initf,rg);
+            compute_chi1(x,chiobj.pweights.row(i),chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,initf,rg);
             minchi=initf;
 
             
@@ -1435,7 +1516,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
             if (!fmoved) continue; // do not optimize if it was not moved.
             //double checks on uninterpolated functionx[0]=gx[i]; x[1]=gy[j];
             x[0]=minx[0]; x[1]=minx[1];
-            compute_chi1(x,chiobj.weights,chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,f,rg);
+            compute_chi1(x,chiobj.pweights.row(i),chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,f,rg);
             if (f>=initf) { std::cerr<<"False positive due to interpolation\n"; continue; } // it's possible that a (very small) decrease was due to errors in interpolant
             proj.p(ip,0)=minx[0]; proj.p(ip,1)=minx[1];
             

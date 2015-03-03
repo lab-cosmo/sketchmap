@@ -18,9 +18,11 @@ enum NLDRFunctionMode { NLDRIdentity, NLDRSigmoid, NLDRCompress, NLDRXSigmoid, N
 class NLDRFunction {
     typedef double (NLDRFunction::*NLDRFP)(double) const;
     typedef void (NLDRFunction::*NLDRFPc)(double, double&, double&) const;
+    typedef double (NLDRFunction::*vNLDRFP)(double);
+    typedef void (NLDRFunction::*vNLDRFPc)(double, double&, double&);
 private:
     NLDRFP pf, pdf; NLDRFPc pfdf;
-    NLDRFP ipf, ipdf; NLDRFPc ipfdf;
+    vNLDRFP ipf, ipdf; vNLDRFPc ipfdf;
     NLDRFunctionMode pmode; 
     std::valarray<double> pars;
 
@@ -48,9 +50,10 @@ private:
     void nldr_warp(double x, double& rf, double& rdf) const;
 
     bool dointerpol; double ipxmax; InterpolateSpline ipspline;
-    double nldr_ipol(double x) const; 
-    double nldr_dipol(double x) const;
-    void nldr_fdipol(double x, double& rf, double& rdf) const;
+    void mkinterpol(double x);
+    double nldr_ipol(double x); 
+    double nldr_dipol(double x);
+    void nldr_fdipol(double x, double& rf, double& rdf);
         
 public:
     
@@ -58,10 +61,10 @@ public:
     NLDRFunction(const NLDRFunction& nf); 
     NLDRFunction& operator=(const NLDRFunction& nf); 
     
-    void set_mode(NLDRFunctionMode mode, const std::valarray<double>& pars, bool interpol=false);
-    inline double f(double x) const { return (this->*ipf)(x); }
-    inline double df(double x) const { return (this->*ipdf)(x); };
-    inline void fdf(double x, double& rf, double& rdf) const { (this->*ipfdf)(x,rf, rdf); }
+    void set_mode(NLDRFunctionMode mode, const std::valarray<double>& pars, bool interpol=true);
+    inline double f(double x) { return (this->*ipf)(x); }
+    inline double df(double x) { return (this->*ipdf)(x); };
+    inline void fdf(double x, double& rf, double& rdf) { (this->*ipfdf)(x,rf, rdf); }
 }; 
 
 double nldr_identity(const double& x);
@@ -207,7 +210,7 @@ public:
 class NLDRProjection {
     friend void NLDRLLE(FMatrix<double>& points, NLDRProjection& proj, const NLDRLLEOptions& opts, NLDRLLEReport& report);
     friend void NLDRMDS(FMatrix<double>& points, NLDRProjection& proj, const NLDRMDSOptions& opts, NLDRMDSReport& report, const FMatrix<double>& outd);
-    friend void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptions& opts, NLDRITERReport& report,  const FMatrix<double>& outd);
+    friend void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, NLDRITEROptions& opts, NLDRITERReport& report,  const FMatrix<double>& outd);
     friend void NLDRIProj(const NLDRProjection& proj, const std::valarray<double>& X, std::valarray<double>& x); 
     
 private:
@@ -354,15 +357,20 @@ public:
 };
 
 class NLDRITERChi: public toolbox::FOnlyMinFunctionBase {
+friend void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, NLDRITEROptions& opts, NLDRITERReport& report, const FMatrix<double>& outd);
 private:
     double pval; std::valarray<double> pgrad;
+    FMatrix<double> pweights;    
+    FMatrix<double> hd, fhd;
+    
 public:
     unsigned long n; unsigned long d; bool dogradient;
     double imix;
     NLDRFunction tfun;
-    FMatrix<double> hd, fhd;
     NLDRMetric *metric;
-    std::valarray<double> weights; FMatrix<double> dweights;
+    void set_hd(const FMatrix<double>& nhd, const FMatrix<double>& nfhd) { n = nhd.rows(); hd=nhd; fhd=nfhd; }
+    void set_weights(const std::valarray<double>& weights, const FMatrix<double>& dweights); 
+
     void set_vars(const std::valarray<double>& rv); 
     void get_value(double& rv) const;
     void get_gradient(std::valarray<double>& rv) const;
@@ -371,7 +379,7 @@ public:
 
 void NLDRLLE(FMatrix<double>& points, NLDRProjection& proj, const NLDRLLEOptions& opts, NLDRLLEReport& report);
 void NLDRMDS(FMatrix<double>& points, NLDRProjection& proj, const NLDRMDSOptions& opts, NLDRMDSReport& report, const FMatrix<double>& outd=FMatrix<double>(0,0));
-void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptions& opts, NLDRITERReport& report, const FMatrix<double>& outd=FMatrix<double>(0,0));
+void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, NLDRITEROptions& opts, NLDRITERReport& report, const FMatrix<double>& outd=FMatrix<double>(0,0));
 void NLDRIProj(const NLDRProjection& proj, const std::valarray<double>& X, std::valarray<double>& x);
 }; //ends namespace toolbox
 #endif //ends #ifndef __DIMREDUCE_H
