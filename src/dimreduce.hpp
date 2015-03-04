@@ -61,7 +61,7 @@ public:
     NLDRFunction(const NLDRFunction& nf); 
     NLDRFunction& operator=(const NLDRFunction& nf); 
     
-    void set_mode(NLDRFunctionMode mode, const std::valarray<double>& pars, bool interpol=true);
+    void set_mode(NLDRFunctionMode mode, const std::valarray<double>& pars, bool interpol=false);
     inline double f(double x) { return (this->*ipf)(x); }
     inline double df(double x) { return (this->*ipdf)(x); };
     inline void fdf(double x, double& rf, double& rdf) { (this->*ipfdf)(x,rf, rdf); }
@@ -229,6 +229,7 @@ private:
     std::valarray<NLDRNeighbor> nd; 
     FMatrix<double> vxx, vdXx; 
     std::valarray<double> vx, vfd, vf1d, vg, vdX; double vv;
+    
 public:
     std::string interp_out;
     void get_vars(std::valarray<double>& rv) const { rv.resize(vx.size()); rv=vx; }

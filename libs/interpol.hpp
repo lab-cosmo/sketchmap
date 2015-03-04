@@ -27,7 +27,7 @@ private:
     long search2(const double& x);
     long jold, n;
     double a, b, c, m, idx;
-    void setconst() { jold=0; a=xlist[0]; b=xlist[n-1]; c=b-a; idx=(n-1)/c; m=0.5*(b+a); }
+    void setconst() { if (n==0) return; jold=0; a=xlist[0]; b=xlist[n-1]; c=b-a; idx=(n-1)/c; m=0.5*(b+a); }
 
 public:
     ODGHeuristics heuristics;
