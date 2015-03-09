@@ -52,7 +52,7 @@ long OneDGauge::search(const double& x)
 {
    unsigned long ju,jm,jl;
    jl=0;
-   ju=n;
+   ju=n-1;
    while (ju-jl > 1) {
       jm=(ju+jl) >> 1;
       if (x >= xlist[jm]) jl=jm;
@@ -129,7 +129,7 @@ void InterpolateBicubic::set_table(const std::valarray<double>& nx1list, const s
     fixarray<double,4> y,  dy1, dy2, d2y12;
     double d1, d2;
     n[0]=nx1list.size(); n[1]=nx2list.size(); 
-    xlist[0]=OneDGauge(nx1list); xlist[1]=OneDGauge(nx2list);
+    xlist[0]=OneDGauge(nx1list, ODGHOld); xlist[1]=OneDGauge(nx2list, ODGHOld);
     
     //create lists with derivatives, if not present
     

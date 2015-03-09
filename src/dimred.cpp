@@ -55,7 +55,7 @@ int main(int argc, char**argv)
 
     CLParser clp(argc,argv);    
     double irnd, imix, ptfac, ptdt, pttau, nssize;
-    unsigned long D,d,dts,nn, presteps, gsteps, pluneigh, npt, nnested; 
+    unsigned long D,d,dts,nn, presteps, gsteps, pluneigh, npt, nnested, nssteps; 
     double sm, neps,peri,speri; bool fverb, fveryverb, fplumed, fhelp,  fweight, fcenter, fsimil, fdot, fwarp, fwwarp;
     std::string fmds, finit, fdhd, fdld, gpars, itermode, tempopts;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
@@ -89,6 +89,7 @@ int main(int argc, char**argv)
             clp.getoption(sm,"smooth",-1e-3) &&  
             clp.getoption(nn,"neigh",(unsigned long) 4) &&
             clp.getoption(nnested,"nswalkers",(unsigned long) 10) &&
+            clp.getoption(nssteps,"nssteps",(unsigned long) 10) &&
             clp.getoption(nssize,"nssize", 1.0) &&
             clp.getoption(neps,"ncut",0.0) && 
             clp.getoption(pluneigh,"nplumed",(unsigned long) 10);
@@ -132,7 +133,7 @@ int main(int argc, char**argv)
     NLDRITERReport iterreport;
     std::valarray<double> tfpars, fhdpars(0.0,3), fldpars(0.0,3), fgrid(0.0,3);
     iteropts.lowdim=d; iteropts.verbose=fveryverb; iteropts.metric=mdsopts.metric;
-    iteropts.nswalkers = nnested;  iteropts.nssize = nssize;
+    iteropts.nswalkers = nnested;  iteropts.nssize = nssize; iteropts.nssteps=nssteps;
 
     if (fdhd=="identity")
     { tfpars.resize(0); iteropts.tfunH.set_mode(NLDRIdentity,tfpars); }

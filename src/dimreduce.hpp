@@ -57,14 +57,14 @@ private:
         
 public:
     
-    NLDRFunction(NLDRFunctionMode nmode=NLDRIdentity, const std::valarray<double>& npars=std::valarray<double>()) { set_mode(nmode,npars); }
+    NLDRFunction(NLDRFunctionMode nmode=NLDRIdentity, const std::valarray<double>& npars=std::valarray<double>()) {  std::cerr<<this<<" CONSTRUCTOR\n"; set_mode(nmode,npars); }
     NLDRFunction(const NLDRFunction& nf); 
     NLDRFunction& operator=(const NLDRFunction& nf); 
     
     void set_mode(NLDRFunctionMode mode, const std::valarray<double>& pars, bool interpol=false);
-    inline double f(double x) { return (this->*ipf)(x); }
-    inline double df(double x) { return (this->*ipdf)(x); };
-    inline void fdf(double x, double& rf, double& rdf) { (this->*ipfdf)(x,rf, rdf); }
+    inline double f(double x) { /*std::cerr<<this<<" getting f(x)\n";*/ return (this->*ipf)(x); }
+    inline double df(double x) { /*std::cerr<<this<<" getting df(x)\n"; */ return (this->*ipdf)(x); };
+    inline void fdf(double x, double& rf, double& rdf) { /*std::cerr<<this<<" getting fdf(x)\n";*/  (this->*ipfdf)(x,rf, rdf); }
 }; 
 
 double nldr_identity(const double& x);
@@ -375,7 +375,7 @@ public:
     void set_vars(const std::valarray<double>& rv); 
     void get_value(double& rv) const;
     void get_gradient(std::valarray<double>& rv) const;
-    NLDRITERChi() : n(0), d(0), imix(0.0), dogradient(true) {}
+    NLDRITERChi() : n(0), d(0), imix(0.0), dogradient(true), metric(NULL) {}
 };
 
 void NLDRLLE(FMatrix<double>& points, NLDRProjection& proj, const NLDRLLEOptions& opts, NLDRLLEReport& report);

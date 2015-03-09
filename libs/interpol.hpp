@@ -36,7 +36,7 @@ public:
     inline long operator() (const double x) { if (heuristics==ODGHUniform) return search2(x); else if (heuristics==ODGHOld) return search1(x); else return search(x); }
     
     void set_table(const std::valarray<double>& nlist) { xlist.resize(n=nlist.size()); xlist=nlist; this->setconst(); }
-    OneDGauge(const std::valarray<double>& nlist=std::valarray<double>()) : xlist(nlist), heuristics(ODGHBisect) { n=xlist.size(); this->setconst(); }
+    OneDGauge(const std::valarray<double>& nlist=std::valarray<double>(), ODGHeuristics nheur=ODGHBisect) : xlist(nlist), heuristics(nheur) { n=xlist.size(); this->setconst(); }
     
     OneDGauge(const OneDGauge& ng) { xlist.resize(n=ng.xlist.size()); xlist=ng.xlist; jold=ng.jold; heuristics=ng.heuristics; }
     OneDGauge& operator =(const OneDGauge& ng) { if (&ng==this) return *this; xlist.resize(n=ng.xlist.size()); xlist=ng.xlist; jold=ng.jold; heuristics=ng.heuristics; this->setconst(); return *this; }
@@ -95,7 +95,7 @@ class InterpolateBicubic {
     public:
         
         void set_table(const std::valarray<double>& nx1list, const std::valarray<double>& nx2list, const FMatrix<double>& nylist, const FTensor<double,3>& ny1list=(FTensor<double,3>()));
-        inline double operator() (const std::valarray<double>& x) { }//return intrp(search1(x),x); }
+        inline double operator() (const std::valarray<double>& x) { } //return intrp(search1(x),x); }
         inline void get_ydy(const fixarray<double, 2>& x, double& y, fixarray<double, 2>& dy) 
         { dintrp(fixarray<unsigned long, 2>(xlist[0](x[0]), xlist[1](x[1])), x, y, dy); }
 

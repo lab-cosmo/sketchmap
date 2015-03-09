@@ -338,6 +338,12 @@ void min_nestsamp (
             }            
         }
         
+        double wspread=0;
+        npos = 0.0; for (unsigned long i=0; i<nwalk; i++) npos+=w_pos[i]; npos*=1.0/nwalk;        
+        for (unsigned long i=0; i<nwalk; i++)
+          wspread+=((w_pos[i]-npos)*(w_pos[i]-npos)).sum();
+        wspread = std::sqrt(wspread/(nwalk -1));
+        
         // selects the hottest replica
         maxw=w_val[0]; imax=0;        
         for (unsigned long i=1; i<nwalk; i++)
@@ -353,7 +359,7 @@ void min_nestsamp (
         accept/=(nwalk*nso.steps*wdim);        
         if (accept>nso.adapt_target) mcstep*=nso.adapt;
         else mcstep/=nso.adapt;
-        std::cerr<<"Setting Nested Sampling threshold "<<maxw<<"\n";
+        std::cerr<<"Nested Sampling spread "<< wspread <<" setting threshold "<<maxw<<"\n";
         std::cerr<<"Mean acceptance "<<accept<<", new step "<<mcstep<<"\n";
         
         // sets the checks for bailing out of the loop
@@ -400,6 +406,7 @@ template<class FCLASS> class Vec2Lin {
         double operator() (double x)
         {
             std::valarray<double> lp(d);
+            
             lp*=x; lp+=p; pf.set_vars(lp);
             double rv; pf.get_value(rv);
             return rv;

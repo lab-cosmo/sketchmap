@@ -57,7 +57,7 @@ inline void NLDRFunction::nldr_compress(double x, double &rf, double& rdf)  cons
 
 //this must return 1-(1+(2^(a/b)-1)(x/s)^a)^-b/a
 inline double NLDRFunction::nldr_xsigmoid(double x) const
-{ double sx=x*pars[0];  return 1.0-pow(1.0+pars[1]*pow(sx,pars[2]),pars[4]); }
+{ double sx=x*pars[0]; std::cerr<<"called sigmoid "<<x<<1.0-pow(1.0+pars[1]*pow(sx,pars[2]),pars[4])<<"\n"; return 1.0-pow(1.0+pars[1]*pow(sx,pars[2]),pars[4]); }
 inline double NLDRFunction::nldr_dxsigmoid(double x) const
 { double sx=x*pars[0];  sx=pars[1]*pow(sx,pars[2]);  return pars[3]*sx/x*pow(1.+sx,pars[4]-1.0); }
 inline void NLDRFunction::nldr_xsigmoid(double x, double &rf, double& rdf) const
@@ -102,10 +102,11 @@ inline void NLDRFunction::nldr_warp(double x, double &rf, double& rdf) const
 NLDRFunction::NLDRFunction(const NLDRFunction& nf)
 {
     set_mode(nf.pmode, nf.pars, nf.dointerpol);    
-   std::cerr<<this<< " CONSTRUCT FUNCTION "<<nf.ipxmax<<"\n";
+   std::cerr<<this<< " COPY CONSTRUCTOR "<<nf.ipxmax<<"\n";
     ipxmax=nf.ipxmax; ipspline=nf.ipspline;
     if (dointerpol) std::cerr<<ipspline(0.1)<<" test ipspline \n";
     pars=nf.pars; // set_mode also modifies parameters to an internal representation, so we have to overwrite this;
+    std::cerr<<"Testing pf after copy "<<(this->*ipf)(1)<<"  "<<(this->*ipdf)(1)<<"\n";    
 }
 
 NLDRFunction& NLDRFunction::operator=(const NLDRFunction& nf)
@@ -113,7 +114,7 @@ NLDRFunction& NLDRFunction::operator=(const NLDRFunction& nf)
    
     if (&nf==this) return *this;
     set_mode(nf.pmode, nf.pars, nf.dointerpol);
-   std::cerr<<"COPYING FUNCTION "<<nf.ipxmax<<"\n";
+   std::cerr<<this<<" COPYING FUNCTION "<<nf.ipxmax<<"\n";
     ipxmax=nf.ipxmax; ipspline=nf.ipspline;
     pars=nf.pars; // set_mode also modifies parameters to an internal representation, so we have to overwrite this;
     return *this;
@@ -171,7 +172,7 @@ void NLDRFunction::set_mode(NLDRFunctionMode mode, const std::valarray<double>& 
     {
        std::cerr<<"Redirecting to the other pointers "<<pf<<"\n";
        ipf=(vNLDRFP)(pf); ipdf=(vNLDRFP)(pdf); ipfdf=(vNLDRFPc)(pfdf);
-       std::cerr<<"Testing pf "<<(this->*pf)(1)<<"\n";
+       std::cerr<<"Testing pf "<<(this->*ipf)(1)<<"\n";
     }
     pmode=mode;
 }
@@ -1259,7 +1260,7 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
     double fld, dfld, gij, tw=0.0;
     pval=0.0; pgrad=0.0; 
     
-    
+    std::cerr<<"SET_VARS "<<dogradient<<" "<<imix<<" "<<pweights.size()<<"\n";
     if (dogradient)
     {
        if (pweights.size()>0)
@@ -1293,8 +1294,9 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
               {
                   pgrad[i*d+h]+=gij*(coords[i*d+h]-coords[j*d+h]);
                   pgrad[j*d+h]-=gij*(coords[i*d+h]-coords[j*d+h]);
-              }
-          }          
+              }              
+          }    
+          std::cerr<<"returning value with gradient "<<pval/tw<<"\n";      
        } else { // mixing but no weighting 
           tw=n*(n-1)*0.5;
           for (unsigned long i=0; i<n; i++)
