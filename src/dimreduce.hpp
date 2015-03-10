@@ -57,11 +57,11 @@ private:
         
 public:
     
-    NLDRFunction(NLDRFunctionMode nmode=NLDRIdentity, const std::valarray<double>& npars=std::valarray<double>()) {  std::cerr<<this<<" CONSTRUCTOR\n"; set_mode(nmode,npars); }
+    NLDRFunction(NLDRFunctionMode nmode=NLDRIdentity, const std::valarray<double>& npars=std::valarray<double>()) {  set_mode(nmode,npars); }
     NLDRFunction(const NLDRFunction& nf); 
     NLDRFunction& operator=(const NLDRFunction& nf); 
     
-    void set_mode(NLDRFunctionMode mode, const std::valarray<double>& pars, bool interpol=false);
+    void set_mode(NLDRFunctionMode mode, const std::valarray<double>& pars, bool interpol=true);
     inline double f(double x) { /*std::cerr<<this<<" getting f(x)\n";*/ return (this->*ipf)(x); }
     inline double df(double x) { /*std::cerr<<this<<" getting df(x)\n"; */ return (this->*ipdf)(x); };
     inline void fdf(double x, double& rf, double& rdf) { /*std::cerr<<this<<" getting fdf(x)\n";*/  (this->*ipfdf)(x,rf, rdf); }
@@ -330,7 +330,7 @@ public:
     ParaOptions ptopts;
     NestSampOptions nsopts;
     double simplex_spread, simplex_mult;
-    double nssize; unsigned long nswalkers;
+    double nssize; unsigned long nswalkers, nssteps;
     
     NLDRITEROptions() : tfunH(NLDRIdentity), tfunL(NLDRIdentity), metric(NULL), verbose(false), 
                    lowdim(2), global(false), grid1(11), grid2(101), gridw(20.0), imix(0.0), ipoints(),
@@ -347,7 +347,7 @@ public:
                        cgopts.linesearch.maxiter=5; cgopts.linesearch.lstol=5e-10; 
                        simplex_spread=1.0; simplex_mult=1.1;
                        
-                       nssize=1.0; nswalkers=50;
+                       nssize=1.0; nswalkers=50; nssteps=10;
                    }
 };
 
@@ -375,7 +375,7 @@ public:
     void set_vars(const std::valarray<double>& rv); 
     void get_value(double& rv) const;
     void get_gradient(std::valarray<double>& rv) const;
-    NLDRITERChi() : n(0), d(0), imix(0.0), dogradient(true), metric(NULL) {}
+    NLDRITERChi() : n(0), d(0), imix(0.0), dogradient(true), metric(NULL), pweights(0,0) {}
 };
 
 void NLDRLLE(FMatrix<double>& points, NLDRProjection& proj, const NLDRLLEOptions& opts, NLDRLLEReport& report);

@@ -57,7 +57,7 @@ inline void NLDRFunction::nldr_compress(double x, double &rf, double& rdf)  cons
 
 //this must return 1-(1+(2^(a/b)-1)(x/s)^a)^-b/a
 inline double NLDRFunction::nldr_xsigmoid(double x) const
-{ double sx=x*pars[0]; std::cerr<<"called sigmoid "<<x<<1.0-pow(1.0+pars[1]*pow(sx,pars[2]),pars[4])<<"\n"; return 1.0-pow(1.0+pars[1]*pow(sx,pars[2]),pars[4]); }
+{ double sx=x*pars[0]; return 1.0-pow(1.0+pars[1]*pow(sx,pars[2]),pars[4]); }
 inline double NLDRFunction::nldr_dxsigmoid(double x) const
 { double sx=x*pars[0];  sx=pars[1]*pow(sx,pars[2]);  return pars[3]*sx/x*pow(1.+sx,pars[4]-1.0); }
 inline void NLDRFunction::nldr_xsigmoid(double x, double &rf, double& rdf) const
@@ -102,11 +102,8 @@ inline void NLDRFunction::nldr_warp(double x, double &rf, double& rdf) const
 NLDRFunction::NLDRFunction(const NLDRFunction& nf)
 {
     set_mode(nf.pmode, nf.pars, nf.dointerpol);    
-   std::cerr<<this<< " COPY CONSTRUCTOR "<<nf.ipxmax<<"\n";
     ipxmax=nf.ipxmax; ipspline=nf.ipspline;
-    if (dointerpol) std::cerr<<ipspline(0.1)<<" test ipspline \n";
     pars=nf.pars; // set_mode also modifies parameters to an internal representation, so we have to overwrite this;
-    std::cerr<<"Testing pf after copy "<<(this->*ipf)(1)<<"  "<<(this->*ipdf)(1)<<"\n";    
 }
 
 NLDRFunction& NLDRFunction::operator=(const NLDRFunction& nf)
@@ -114,7 +111,6 @@ NLDRFunction& NLDRFunction::operator=(const NLDRFunction& nf)
    
     if (&nf==this) return *this;
     set_mode(nf.pmode, nf.pars, nf.dointerpol);
-   std::cerr<<this<<" COPYING FUNCTION "<<nf.ipxmax<<"\n";
     ipxmax=nf.ipxmax; ipspline=nf.ipspline;
     pars=nf.pars; // set_mode also modifies parameters to an internal representation, so we have to overwrite this;
     return *this;
@@ -163,16 +159,13 @@ void NLDRFunction::set_mode(NLDRFunctionMode mode, const std::valarray<double>& 
     dointerpol=false; ipxmax=0; 
     if (interpol) 
     {
-       std::cerr<<"Setting up interpolators\n";
        dointerpol=true; 
        ipf=(&NLDRFunction::nldr_ipol); ipdf=(&NLDRFunction::nldr_dipol);  
        ipfdf=(&NLDRFunction::nldr_fdipol); 
     }
     else
     {
-       std::cerr<<"Redirecting to the other pointers "<<pf<<"\n";
        ipf=(vNLDRFP)(pf); ipdf=(vNLDRFP)(pdf); ipfdf=(vNLDRFPc)(pfdf);
-       std::cerr<<"Testing pf "<<(this->*ipf)(1)<<"\n";
     }
     pmode=mode;
 }
@@ -215,7 +208,6 @@ void NLDRFunction::mkinterpol(double mx)
        
     }
     
-   std::cerr<<this<<" SIZE OF INTERPOLATION GRID "<<mx<<" "<<ipxmax<<": "<<vx.size()<<"\n";
    std::valarray<double> vax(vx.data(),vx.size()), vay(vy.data(),vy.size()), vady(vdy.data(),vdy.size());
    
    //!TODO use the derivatives, since we have it!
@@ -1239,8 +1231,8 @@ void NLDRITERChi::set_weights(const std::valarray<double>& weights, const FMatri
     if (dweights.rows()==n) pweights = dweights; 
     if (weights.size()==n) 
     {
-       if (pweights.size()==0) { pweights.resize(n,n); pweights*=0; pweights+=1; }
-       for (unsigned long i=0; i<n; ++i) for (unsigned long j=0; j<n; ++j) pweights(i,j)*=weights[i]*weights[j]; 
+       if (pweights.size()==0) { pweights.resize(n,n); for (unsigned long i=0; i<n; ++i) for (unsigned long j=0; j<n; ++j) pweights(i,j)=1; }
+       for (unsigned long i=0; i<n; ++i) for (unsigned long j=0; j<n; ++j) pweights(i,j)*=weights[i]*weights[j];        
     }
 }
 
@@ -1260,7 +1252,6 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
     double fld, dfld, gij, tw=0.0;
     pval=0.0; pgrad=0.0; 
     
-    std::cerr<<"SET_VARS "<<dogradient<<" "<<imix<<" "<<pweights.size()<<"\n";
     if (dogradient)
     {
        if (pweights.size()>0)
@@ -1279,7 +1270,7 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
                   pgrad[i*d+h]+=gij*(coords[i*d+h]-coords[j*d+h]);
                   pgrad[j*d+h]-=gij*(coords[i*d+h]-coords[j*d+h]);
               }
-          }
+          }  
        } else if (imix==0.0) {
           tw=n*(n-1)*0.5;
           for (unsigned long i=0; i<n; i++)
@@ -1295,8 +1286,7 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
                   pgrad[i*d+h]+=gij*(coords[i*d+h]-coords[j*d+h]);
                   pgrad[j*d+h]-=gij*(coords[i*d+h]-coords[j*d+h]);
               }              
-          }    
-          std::cerr<<"returning value with gradient "<<pval/tw<<"\n";      
+          }
        } else { // mixing but no weighting 
           tw=n*(n-1)*0.5;
           for (unsigned long i=0; i<n; i++)
@@ -1452,6 +1442,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, NLDRITEROptions& op
     
     chiobj.set_hd(hd, fhd);
     chiobj.d=proj.d;
+    std::cerr<<"WEIGHTS "<<opts.weights.size()<<" , "<<opts.dweights.size()<<"\n";
     chiobj.set_weights(opts.weights, opts.dweights);     
     std::valarray<double> chi1weights(opts.weights); if (chi1weights.size()==0) { chi1weights.resize(proj.n); chi1weights=1.0; }
     
@@ -1541,6 +1532,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, NLDRITEROptions& op
             {
                 xx[0]=gx[i]; xx[1]=gy[j];
                 bicub.get_ydy(xx,f,df);
+                //std::cerr<<xx[0]<<","<<xx[1]<<">intrp>"<<f<<":"<<df[0]<<","<<df[1]<<"\n";
                 if (f<minchi) { fmoved=true; minchi=f; minx=xx; }
             }
             
@@ -1548,7 +1540,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, NLDRITEROptions& op
             //double checks on uninterpolated functionx[0]=gx[i]; x[1]=gy[j];
             x[0]=minx[0]; x[1]=minx[1];
             compute_chi1(x,chi1weights,chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,f,rg);
-            if (f>=initf) { std::cerr<<"False positive due to interpolation\n"; continue; } // it's possible that a (very small) decrease was due to errors in interpolant
+            if (f>=initf) { std::cerr<<"False positive "<<f<<" rather than "<< minchi << " "<< initf<< " due to  interpolation\n"; continue; } // it's possible that a (very small) decrease was due to errors in interpolant
             proj.p(ip,0)=minx[0]; proj.p(ip,1)=minx[1];
             
             std::ofstream restf((std::string("global.")+int2str(ip)).c_str());
@@ -1567,7 +1559,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, NLDRITEROptions& op
                         xx[0]=gx[i]; xx[1]=gy[j];
                         bicub.get_ydy(xx,f,df);
                         intfile<<xx[0]<<" "<<xx[1]<<" "<<f<<"\n";
-                    } intfile<<"\n";}  }
+                    } intfile<<"\n";}  }     
                 intfile.close(); //*/ 
             }
             //intfile.close(); ERROR("BREALK");
@@ -1594,7 +1586,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, NLDRITEROptions& op
             case NLDRNestSamp:
                 std::cerr<<"Testing nested sampling...\n";
                 chiobj.dogradient=false;
-                nsop.mc_wall=opts.nssize;
+                nsop.mc_wall=opts.nssize; nsop.killsteps=opts.nssteps; nsop.psize=proj.d;
                 min_nestsamp(chiobj,make_walkers(pcoords.size(),opts.nswalkers,opts.nssize), pcoords, ferr, iops, nsop);
                 break;
             case NLDRAnnealing:

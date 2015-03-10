@@ -265,9 +265,9 @@ end
 ************************************************************************/
 typedef struct _NestSampOpts {
     double mc_step, mc_wall;
-    unsigned long steps;
+    unsigned long steps, killsteps, psize;
     double adapt, adapt_target;
-    _NestSampOpts(): mc_step(1.0), mc_wall(0), steps(10), adapt(1.5), adapt_target(0.3) {}
+    _NestSampOpts(): mc_step(1.0), psize(0), mc_wall(0), steps(2), killsteps(100), adapt(1.25), adapt_target(0.3) {}
 } NestSampOptions;
 
 std::valarray<std::valarray<double> > make_walkers(unsigned long ndim, unsigned long nwalker, double dr, MTRndUniform rngu=MTRndUniform());
@@ -310,13 +310,13 @@ void min_nestsamp (
     rpos.resize(w_pos[0].size());
     rpos=w_pos[0]; rvalue=w_val[0]; 
     w_nok=0; mcstep=nso.mc_step;
+    unsigned long nstep=0;
     while (!iops)
     {
         // does some random walking
         double accept=0;
         for (unsigned long k=0; k<nso.steps; ++k)
-        {
-           std::cerr<<"NS step "<<k<<"\n";
+        {           
             for (unsigned long i=0; i<nwalk; ++i)
             {               
                for (unsigned long j=0; j<wdim; ++j) npos[j] = rngu()-0.5;
@@ -338,6 +338,30 @@ void min_nestsamp (
             }            
         }
         
+        // do some point exchanges
+        int nxc; nxc=0;
+        if (nso.psize>0) for (unsigned long i=0; i<nwalk; ++i)
+            {  
+               
+               unsigned long ip1, ip2;
+               for (unsigned int k=0; k<4; ++k) {
+               ip1 = (int) (rngu()*nwalk/nso.psize);
+               ip2 = (int) (rngu()*nwalk/nso.psize);
+               if (ip1!=ip2) 
+               {
+                  npos = w_pos[i]; 
+                  
+                  for (unsigned long j=0; j<nso.psize; ++j)
+                  { npos[ip1*nso.psize+j]=w_pos[i][ip2*nso.psize+j]; npos[ip2*nso.psize+j]=w_pos[i][ip1*nso.psize+j]; }
+                  
+                  f.set_vars(npos); f.get_value(nval);
+                  if (nval<=maxw) { w_pos[i]=npos; w_val[i]=nval; nxc++;} // also keeps track of the accepted moves               
+               }
+               }
+            }
+         std::cerr<<"Accepted "<<nxc/4<<" swaps!\n";
+        nstep++;
+        
         double wspread=0;
         npos = 0.0; for (unsigned long i=0; i<nwalk; i++) npos+=w_pos[i]; npos*=1.0/nwalk;        
         for (unsigned long i=0; i<nwalk; i++)
@@ -350,16 +374,20 @@ void min_nestsamp (
         { if (w_val[i]>maxw) { maxw=w_val[i]; imax=i; } }
         
         // kills the hot replica and spawns it on a random walker
-        ispawn = imax;
-        while (ispawn==imax) ispawn=rngu()*nwalk;
-        w_pos[imax] = w_pos[ispawn];
-        w_val[imax] = w_val[ispawn];
-        
+        if (nstep%nso.killsteps==0) 
+        {           
+           ispawn = imax;
+           while (ispawn==imax) ispawn=rngu()*nwalk;
+           w_pos[imax] = w_pos[ispawn];
+           w_val[imax] = w_val[ispawn];
+           std::cerr<<"Killing hot replica "<<imax<<" & respawning on "<<ispawn<<"\n";
+        }
+         
         // adaptive mc step
         accept/=(nwalk*nso.steps*wdim);        
         if (accept>nso.adapt_target) mcstep*=nso.adapt;
-        else mcstep/=nso.adapt;
-        std::cerr<<"Nested Sampling spread "<< wspread <<" setting threshold "<<maxw<<"\n";
+        else mcstep/=nso.adapt*1.001;
+        std::cerr<<"Nested Sampling spread "<< wspread <<" setting threshold "<<maxw<<" minimum energy structure "<<rvalue<<"\n";
         std::cerr<<"Mean acceptance "<<accept<<", new step "<<mcstep<<"\n";
         
         // sets the checks for bailing out of the loop
