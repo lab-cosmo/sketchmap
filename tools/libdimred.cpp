@@ -11,8 +11,9 @@
 #include "interpol.hpp"
 #include "linalg.hpp"
 
-//#include <boost/math/special_functions/gamma.hpp>
-
+#ifdef USE_BOOST
+  #include <boost/math/special_functions/gamma.hpp>
+#endif
 
 #ifdef ARPACK
 namespace tblapack {
@@ -56,7 +57,7 @@ inline void NLDRFunction::nldr_compress(double x, double &rf, double& rdf)  cons
 
 //this must return 1-(1+(2^(a/b)-1)(x/s)^a)^-b/a
 inline double NLDRFunction::nldr_xsigmoid(double x) const
-{ double sx=x*pars[0];  return 1.0-pow(1.0+pars[1]*pow(sx,pars[2]),pars[4]); }
+{ double sx=x*pars[0]; return 1.0-pow(1.0+pars[1]*pow(sx,pars[2]),pars[4]); }
 inline double NLDRFunction::nldr_dxsigmoid(double x) const
 { double sx=x*pars[0];  sx=pars[1]*pow(sx,pars[2]);  return pars[3]*sx/x*pow(1.+sx,pars[4]-1.0); }
 inline void NLDRFunction::nldr_xsigmoid(double x, double &rf, double& rdf) const
@@ -65,18 +66,21 @@ inline void NLDRFunction::nldr_xsigmoid(double x, double &rf, double& rdf) const
 
 //returns a gamma-function sigmoid
 //pars[0]=1.0/(sigma sqrt[2]), pars[1]=N, pars[2]=2/gamma(N/2)
+#ifdef USE_BOOST
 inline double NLDRFunction::nldr_gamma(double x) const
-{ double sx=x*pars[0]; 
-  return 0; }
-// return boost::math::gamma_q(pars[1]*0.5, sx*sx); }
+{ double sx=x*pars[0];  return boost::math::gamma_q(pars[1]*0.5, sx*sx); }
 inline double NLDRFunction::nldr_dgamma(double x) const
-{ double sx=x*pars[0];  return 0; }
-// return -pars[2]*pow(sx,pars[1]-1)*exp(-sx*sx)*pars[0]; }
+{ double sx=x*pars[0];  return -pars[2]*pow(sx,pars[1]-1)*exp(-sx*sx)*pars[0]; }
 inline void NLDRFunction::nldr_gamma(double x, double &rf, double& rdf) const
-{ double sx=x*pars[0]; 
-rf=rdf=0; }
-// rf=boost::math::gamma_q(pars[1]*0.5, sx*sx); rdf=-pars[2]*pow(sx,pars[1]-1)*exp(-sx*sx)*pars[0]; }
-
+{ double sx=x*pars[0];  rf=boost::math::gamma_q(pars[1]*0.5, sx*sx); rdf=-pars[2]*pow(sx,pars[1]-1)*exp(-sx*sx)*pars[0]; }
+#else
+inline double NLDRFunction::nldr_gamma(double x) const
+{ ERROR("libdimred has been compiled without BOOST support. gamma function is not available.") }
+inline double NLDRFunction::nldr_dgamma(double x) const
+{ ERROR("libdimred has been compiled without BOOST support. gamma function is not available.") }
+inline void NLDRFunction::nldr_gamma(double x, double &rf, double& rdf) const
+{ ERROR("libdimred has been compiled without BOOST support. gamma function is not available.") }
+#endif
 
 
 //this must return f^-1_LD(f(HD(x))
@@ -91,43 +95,28 @@ inline double NLDRFunction::nldr_warp(double x) const
 inline double NLDRFunction::nldr_dwarp(double x) const
 { double fx=nldr_xsigmoid(x), dfx=nldr_dxsigmoid(x);  return dg(fx)*dfx; }
 inline void NLDRFunction::nldr_warp(double x, double &rf, double& rdf) const
-{ double fx, dfx; nldr_xsigmoid(x,fx,dfx); rf=g(fx); rdf=df(fx)*dfx; }
+{ double fx, dfx; nldr_xsigmoid(x,fx,dfx); rf=g(fx); rdf=dg(fx)*dfx; }
 
 
 
 NLDRFunction::NLDRFunction(const NLDRFunction& nf)
 {
-    pmode=nf.pmode;
-    pars.resize(nf.pars.size()); pars=nf.pars;
-    switch(pmode)
-    { 
-        case NLDRIdentity: pf=&NLDRFunction::nldr_identity; pdf=&NLDRFunction::nldr_didentity; pfdf=&NLDRFunction::nldr_identity;  break;
-        case NLDRCompress: pf=&NLDRFunction::nldr_compress; pdf=&NLDRFunction::nldr_dcompress; pfdf=&NLDRFunction::nldr_compress;  break;
-        case NLDRSigmoid: pf=&NLDRFunction::nldr_sigmoid; pdf=&NLDRFunction::nldr_dsigmoid; pfdf=&NLDRFunction::nldr_sigmoid;  break;
-        case NLDRXSigmoid: pf=&NLDRFunction::nldr_xsigmoid; pdf=&NLDRFunction::nldr_dxsigmoid; pfdf=&NLDRFunction::nldr_xsigmoid;  break;
-        case NLDRGamma: pf=&NLDRFunction::nldr_gamma; pdf=&NLDRFunction::nldr_dgamma; pfdf=&NLDRFunction::nldr_gamma;  break;
-        case NLDRWarp: pf=&NLDRFunction::nldr_warp; pdf=&NLDRFunction::nldr_dwarp; pfdf=&NLDRFunction::nldr_warp;  break;        
-    }
+    set_mode(nf.pmode, nf.pars, nf.dointerpol);    
+    ipxmax=nf.ipxmax; ipspline=nf.ipspline;
+    pars=nf.pars; // set_mode also modifies parameters to an internal representation, so we have to overwrite this;
 }
 
 NLDRFunction& NLDRFunction::operator=(const NLDRFunction& nf)
 {
+   
     if (&nf==this) return *this;
-    pmode=nf.pmode;
-    pars.resize(nf.pars.size()); pars=nf.pars;
-    switch(pmode)
-    { 
-        case NLDRIdentity: pf=&NLDRFunction::nldr_identity; pdf=&NLDRFunction::nldr_didentity; pfdf=&NLDRFunction::nldr_identity;  break;
-        case NLDRCompress: pf=&NLDRFunction::nldr_compress; pdf=&NLDRFunction::nldr_dcompress; pfdf=&NLDRFunction::nldr_compress;  break;
-        case NLDRSigmoid: pf=&NLDRFunction::nldr_sigmoid; pdf=&NLDRFunction::nldr_dsigmoid; pfdf=&NLDRFunction::nldr_sigmoid;  break;
-        case NLDRXSigmoid: pf=&NLDRFunction::nldr_xsigmoid; pdf=&NLDRFunction::nldr_dxsigmoid; pfdf=&NLDRFunction::nldr_xsigmoid;  break;
-        case NLDRGamma: pf=&NLDRFunction::nldr_gamma; pdf=&NLDRFunction::nldr_dgamma; pfdf=&NLDRFunction::nldr_gamma;  break;
-        case NLDRWarp: pf=&NLDRFunction::nldr_warp; pdf=&NLDRFunction::nldr_dwarp; pfdf=&NLDRFunction::nldr_warp;  break;                
-    }
+    set_mode(nf.pmode, nf.pars, nf.dointerpol);
+    ipxmax=nf.ipxmax; ipspline=nf.ipspline;
+    pars=nf.pars; // set_mode also modifies parameters to an internal representation, so we have to overwrite this;
     return *this;
 }
    
-void NLDRFunction::set_mode(NLDRFunctionMode mode, const std::valarray<double>& npars)
+void NLDRFunction::set_mode(NLDRFunctionMode mode, const std::valarray<double>& npars, bool interpol)
 {
     switch (mode) 
     {
@@ -141,29 +130,106 @@ void NLDRFunction::set_mode(NLDRFunctionMode mode, const std::valarray<double>& 
         pf=&NLDRFunction::nldr_compress; pdf=&NLDRFunction::nldr_dcompress; pfdf=&NLDRFunction::nldr_compress;
         break;
     case NLDRSigmoid: //computes  1-1/(1+(x/npars[0])^2)
-        if (npars.size()!=1) ERROR("Wrong number of parameters for Sigmoid transfer function");
+        if (npars.size()<1) ERROR("Wrong number of parameters for Sigmoid transfer function");
         pars.resize(2); pars[0]=1.0/npars[0]; pars[1]=2.0*pars[0]*pars[0];
         pf=&NLDRFunction::nldr_sigmoid; pdf=&NLDRFunction::nldr_dsigmoid; pfdf=&NLDRFunction::nldr_sigmoid;
         break;
     case NLDRXSigmoid:  //this must return 1-(1+(2^(a/b)-1)(x/s)^a)^-b/a s=np[0] a=np[1] b=np[2]
-        if (npars.size()!=3) ERROR("Wrong number of parameters for XSigmoid transfer function");
+        if (npars.size()<3) ERROR("Wrong number of parameters for XSigmoid transfer function");
         pars.resize(5); pars[0]=1.0/npars[0]; pars[1]=pow(2.,npars[1]/npars[2])-1.0; pars[2]=npars[1]; pars[3]=npars[2]; pars[4]=-npars[2]/npars[1];
         pf=&NLDRFunction::nldr_xsigmoid; pdf=&NLDRFunction::nldr_dxsigmoid; pfdf=&NLDRFunction::nldr_xsigmoid;
         break;
     case NLDRGamma:  //this must return gamma(N/2,(x/sigma)^2/2) sigma=np[0] N=np[1] 
-        if (npars.size()!=2) ERROR("Wrong number of parameters for Gamma transfer function");
-        pars.resize(3); pars[0]=1.0/npars[0]/sqrt(2.0); pars[1]=npars[1]; pars[2]=0.0; //2.0/boost::math::tgamma(npars[1]*0.5); 
+#ifndef USE_BOOST
+        ERROR("libdimred has been compiled without BOOST support. gamma function is not available.")
+#else
+        if (npars.size()<2) ERROR("Wrong number of parameters for Gamma transfer function");
+        pars.resize(3); pars[0]=1.0/npars[0]/sqrt(2.0); pars[1]=npars[1]; pars[2]=2.0/boost::math::tgamma(npars[1]*0.5); 
         pf=&NLDRFunction::nldr_gamma; pdf=&NLDRFunction::nldr_dgamma; pfdf=&NLDRFunction::nldr_gamma;
+#endif
         break;        
     case NLDRWarp:  //this must return f^-1_d(d_D(x)) s=np[0] a_D=np[1] b_D=np[2] a_d=np[3] b_d=np[4]
-        if (npars.size()!=5) ERROR("Wrong number of parameters for XSigmoid transfer function");
+        if (npars.size()<5) ERROR("Wrong number of parameters for XSigmoid transfer function");
         pars.resize(10); pars[0]=1.0/npars[0]; pars[1]=pow(2.,npars[1]/npars[2])-1.0; pars[2]=npars[1]; pars[3]=npars[2]; pars[4]=-npars[2]/npars[1];
                         pars[5]=npars[0]; pars[6]=pow(2.,npars[3]/npars[4])-1.0; pars[7]=1.0/npars[3]; pars[8]=npars[4]; pars[9]=-npars[3]/npars[4];
         pf=&NLDRFunction::nldr_warp; pdf=&NLDRFunction::nldr_dwarp; pfdf=&NLDRFunction::nldr_warp;
         break;        
     default: ERROR("Unsupported transfer function");
     }
+    dointerpol=false; ipxmax=0; 
+    if (interpol) 
+    {
+       dointerpol=true; 
+       ipf=(&NLDRFunction::nldr_ipol); ipdf=(&NLDRFunction::nldr_dipol);  
+       ipfdf=(&NLDRFunction::nldr_fdipol); 
+    }
+    else
+    {
+       ipf=(vNLDRFP)(pf); ipdf=(vNLDRFP)(pdf); ipfdf=(vNLDRFPc)(pfdf);
+    }
     pmode=mode;
+}
+
+#define NLDR_INTERPOL_EPS 1e-3
+void NLDRFunction::mkinterpol(double mx)
+{
+   if (mx<ipxmax || isnan(mx)) return;
+   
+   
+   ipxmax = mx*1.2; // give some extra space for interpolation
+   double x=0.0, y, dy, dx;
+   std::vector<double> vx, vy, vdy;
+   vx.push_back(0.0); vy.push_back(0.0); vdy.push_back(0.0); 
+   x=1e-10*ipxmax;   
+   
+   /* adaptive grid
+   while (x<ipxmax)
+   {
+       (this->*pfdf)(x, y, dy);
+       vx.push_back(x);
+       vy.push_back(y);
+       vdy.push_back(dy);
+       std::cerr<<"%% "<< x<<" " <<y<<"\n";
+       //adaptive x step to get constant "scaled segment" length (dx/mx)**2+(dx*dy)**2==eps^2
+       dx=NLDR_INTERPOL_EPS/sqrt(dy*dy+1.0/(ipxmax*ipxmax));
+       x+=dx;   
+   }
+   */
+   dx=ipxmax*NLDR_INTERPOL_EPS;
+   x=dx;
+   while (x<ipxmax)
+   {
+      (this->*pfdf)(x, y, dy);
+       //std::cerr<<"%% "<< x<<" " <<y<<"\n";
+       vx.push_back(x);
+       vy.push_back(y);
+       vdy.push_back(dy);
+       x+=dx;
+       
+    }
+    
+   std::valarray<double> vax(vx.data(),vx.size()), vay(vy.data(),vy.size()), vady(vdy.data(),vdy.size());
+   
+   //!TODO use the derivatives, since we have it!
+   ipspline.set_table(vax, vay, ODGHUniform);
+}
+
+double NLDRFunction::nldr_ipol(double x)
+{
+   mkinterpol(x);
+   return ipspline(x);
+}
+
+double  NLDRFunction::nldr_dipol(double x)
+{
+   mkinterpol(x);
+   return ipspline.d(x);
+}
+
+void  NLDRFunction::nldr_fdipol(double x, double& rf, double& rdf)
+{
+   mkinterpol(x);
+   ipspline.fd(x,rf,rdf);
 }
 
 /*! A collection of metric functions */
@@ -248,6 +314,15 @@ double NLDRMetricSphere::pdist(const double* a, const double* b, unsigned long n
     std::cerr<<"cos(d) "<<xy<<" >> "<<d<<"\n";
     */
     return d;
+}
+
+
+/*! A collection of metric functions */
+double NLDRMetricDot::pdist(const double* a, const double* b, unsigned long n) const
+{
+    double d=0.0;
+    for (unsigned long i=0; i<n; ++i) d+=(b[i]*a[i]);
+    return -log(d);
 }
 
 /*Builds neighbor list*/
@@ -1150,14 +1225,23 @@ void NLDRMDS(FMatrix<double>& points, NLDRProjection& proj, const NLDRMDSOptions
     } //ends if (opts.mode!=TMDS)
 }
 
+void NLDRITERChi::set_weights(const std::valarray<double>& weights, const FMatrix<double>& dweights)
+{  
+    pweights.resize(0,0);
+    if (dweights.rows()==n) pweights = dweights; 
+    if (weights.size()==n) 
+    {
+       if (pweights.size()==0) { pweights.resize(n,n); for (unsigned long i=0; i<n; ++i) for (unsigned long j=0; j<n; ++j) pweights(i,j)=1; }
+       for (unsigned long i=0; i<n; ++i) for (unsigned long j=0; j<n; ++j) pweights(i,j)*=weights[i]*weights[j];        
+    }
+}
+
 void NLDRITERChi::set_vars(const std::valarray<double>& rv) 
 { 
     if (coords.size()!=rv.size()) 
-    {
-        coords.resize(rv.size()); 
-        pgrad.resize(rv.size());
-    }
+    {   coords.resize(rv.size());  pgrad.resize(rv.size());   }
     coords=rv;
+    
     //std::cerr<<"finding distances\n";
     FMatrix<double> ld(n,n); ld*=0.0;
     for (unsigned long i=0; i<n; i++)
@@ -1165,30 +1249,92 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
     { ld(j,i)=ld(i,j)=metric->dist(&coords[i*d], &coords[j*d],d);  }
     
     //std::cerr<<"LOW-DIM DISTANCES" <<ld<<"\n";
-    double fld, dfld, gij, wij, tw=0.0, dwij;
+    double fld, dfld, gij, tw=0.0;
     pval=0.0; pgrad=0.0; 
-    double dcw=1.0;
     
-    for (unsigned long i=0; i<n; i++)
-        for (unsigned long j=0; j<i; j++) 
-    { 
-    
-    
-       // std::cerr<<i<<","<<j<<" : "<<ld(i,j)<<"\n";
-        tfun.fdf(ld(i,j),fld,dfld);
-        
-        wij=weights[i]*weights[j]*dcw;
-        if (dweights.size()>0) dwij=dweights(i,j); else dwij=1.0;
-        
-        tw+=wij;
-        pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *wij *dwij;
-        gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/ld(i,j) *wij *dwij;
+    if (dogradient)
+    {
+       if (pweights.size()>0)
+       {
+          for (unsigned long i=0; i<n; i++)
+              for (unsigned long j=0; j<i; j++) 
+          { 
+              tfun.fdf(ld(i,j),fld,dfld);
+                         
+              tw+=pweights(i,j);
+              pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *pweights(i,j);
+              gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/ld(i,j)  *pweights(i,j);
 
-        for (unsigned long h=0; h<d; h++)
-        {
-            pgrad[i*d+h]+=gij*(coords[i*d+h]-coords[j*d+h]);
-            pgrad[j*d+h]-=gij*(coords[i*d+h]-coords[j*d+h]);
-        }
+              for (unsigned long h=0; h<d; h++)
+              {
+                  pgrad[i*d+h]+=gij*(coords[i*d+h]-coords[j*d+h]);
+                  pgrad[j*d+h]-=gij*(coords[i*d+h]-coords[j*d+h]);
+              }
+          }  
+       } else if (imix==0.0) {
+          tw=n*(n-1)*0.5;
+          for (unsigned long i=0; i<n; i++)
+              for (unsigned long j=0; j<i; j++) 
+          {           
+              tfun.fdf(ld(i,j),fld,dfld);
+                         
+              pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld));
+              gij=((fhd(i,j)-fld)*dfld);
+
+              for (unsigned long h=0; h<d; h++)
+              {
+                  pgrad[i*d+h]+=gij*(coords[i*d+h]-coords[j*d+h]);
+                  pgrad[j*d+h]-=gij*(coords[i*d+h]-coords[j*d+h]);
+              }              
+          }
+       } else { // mixing but no weighting 
+          tw=n*(n-1)*0.5;
+          for (unsigned long i=0; i<n; i++)
+              for (unsigned long j=0; j<i; j++) 
+          {           
+              tfun.fdf(ld(i,j),fld,dfld);
+                         
+              pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)));
+              gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/ld(i,j);
+
+              for (unsigned long h=0; h<d; h++)
+              {
+                  pgrad[i*d+h]+=gij*(coords[i*d+h]-coords[j*d+h]);
+                  pgrad[j*d+h]-=gij*(coords[i*d+h]-coords[j*d+h]);
+              }
+          }
+       }
+    }
+    else  // faster version without gradients
+    {
+       if (pweights.size()>0)
+       {
+          for (unsigned long i=0; i<n; i++)
+              for (unsigned long j=0; j<i; j++) 
+          { 
+              fld=tfun.f(ld(i,j));
+
+              tw+=pweights(i,j);
+              pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *pweights(i,j);
+          }
+       } else if (imix==0) { // simplified version without weights or mixing
+          tw=n*(n-1)*0.5;
+          for (unsigned long i=0; i<n; i++)
+              for (unsigned long j=0; j<i; j++) 
+          { 
+              fld=tfun.f(ld(i,j));
+              pval+=(fhd(i,j)-fld)*(fhd(i,j)-fld);
+           }          
+       } else {
+          tw=n*(n-1)*0.5;
+          for (unsigned long i=0; i<n; i++)
+              for (unsigned long j=0; j<i; j++) 
+          { 
+              fld=tfun.f(ld(i,j));
+              pval+=(fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j));
+           }   
+       }
+      
     }
     pval*=1.0/tw;
     pgrad*=-2.0/tw;
@@ -1205,7 +1351,7 @@ void NLDRITERChi::get_gradient(std::valarray<double>& rv) const
     rv=pgrad;
 }
 
-void compute_chi1(const std::valarray<double>& x, const std::valarray<double>& w, const double& imix, const NLDRFunction& tfun, FMatrix<double>& md, FMatrix<double>& mfd, FMatrix<double> p, long skipi, double& vv, std::valarray<double>& vg)
+void compute_chi1(const std::valarray<double>& x, const std::valarray<double>& w, const double& imix, NLDRFunction& tfun, FMatrix<double>& md, FMatrix<double>& mfd, FMatrix<double> p, long skipi, double& vv, std::valarray<double>& vg)
 {
     unsigned long n=p.rows(), d=x.size();
     std::valarray<double> vx(x);
@@ -1240,39 +1386,36 @@ void compute_chi1(const std::valarray<double>& x, const std::valarray<double>& w
 }
 
 
-void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptions& opts, NLDRITERReport& report, const FMatrix<double>& outd)
+void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, NLDRITEROptions& opts, NLDRITERReport& report, const FMatrix<double>& outd)
 {
         
     if (opts.metric==NULL) ERROR("Uninitialized metric pointer\n");
     proj.P=points; proj.D=points.cols(); proj.d=opts.lowdim; proj.n=points.rows();
     proj.p.resize(proj.n,proj.d);
     
-    NLDRITERChi chiobj; chiobj.hd.resize(proj.n,proj.n);
-    chiobj.fhd.resize(proj.n,proj.n); chiobj.n=proj.n; chiobj.d=proj.d;
-    chiobj.metric=new NLDRMetricEuclid; chiobj.tfun=opts.tfunL; 
-    chiobj.weights.resize(proj.n); if (opts.weights.size()==0) chiobj.weights=1.0; else chiobj.weights=opts.weights; chiobj.imix=opts.imix;
-    if (opts.dweights.size()==0) chiobj.dweights.resize(0,0); else chiobj.dweights=opts.dweights;
+    NLDRITERChi chiobj; 
+        
+    FMatrix<double> hd(proj.n,proj.n), fhd(proj.n,proj.n);
     
     std::valarray<double> pcoords(proj.n*proj.d); 
-    FMatrix<double> distHD(chiobj.fhd), distLD(proj.n,proj.n);
-    
-    
+    FMatrix<double> distHD(proj.n,proj.n), distLD(proj.n,proj.n);
+        
     if (outd.cols()==proj.n)
-    {  chiobj.fhd=outd; }
+    {  fhd=outd; }
     else
     {
        //distance data provided in input
        std::cerr<<"Building distance matrix\n";
        for (unsigned long i=0; i<proj.n; i++)
        {
-           chiobj.fhd(i,i)=0;
+           fhd(i,i)=0;
            for (unsigned long j=0; j<i; j++) {
-               chiobj.fhd(i,j)=chiobj.fhd(j,i)=opts.metric->dist(&(const_cast<FMatrix<double>&>(points)(i,0)), &(const_cast<FMatrix<double>&>(points)(j,0)), proj.D); 
+               fhd(i,j)=fhd(j,i)=opts.metric->dist(&(const_cast<FMatrix<double>&>(points)(i,0)), &(const_cast<FMatrix<double>&>(points)(j,0)), proj.D); 
            }
        }    
     }
 
-    chiobj.hd=chiobj.fhd; //!TEST
+    hd=fhd; 
     
     if (opts.ipoints.size()==0)
     {
@@ -1280,7 +1423,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
         NLDRMDSOptions mdsopts; NLDRMDSReport mdsreport;
         mdsopts.lowdim=proj.d; mdsopts.verbose=false; 
         mdsopts.mode=MDS; mdsopts.metric=opts.metric;
-        NLDRMDS(points, proj, mdsopts, mdsreport, chiobj.fhd);
+        NLDRMDS(points, proj, mdsopts, mdsreport, fhd);
     }
     else proj.p=opts.ipoints;
     
@@ -1291,12 +1434,18 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
     
     for (unsigned long i=0; i<proj.n; i++)
         for (unsigned long j=0; j<i; j++)  { 
-        chiobj.fhd(j,i)=chiobj.fhd(i,j)=opts.tfunH.f(chiobj.fhd(i,j));
-       // std::cerr<<chiobj.hd(i,j)<<", "<<chiobj.fhd(i,j)<<", "<<chiobj.dfd(chiobj.hd(i,j))<<"\n"; 
+        fhd(j,i)=fhd(i,j)=opts.tfunH.f(fhd(i,j));
         }
-        
-        
-     std::cerr<<"Setting up pcoords\n";
+   
+    // prepares the Chi2 evaluation object
+    chiobj.metric=new NLDRMetricEuclid; chiobj.tfun=opts.tfunL; chiobj.imix=opts.imix;
+    
+    chiobj.set_hd(hd, fhd);
+    chiobj.d=proj.d;
+    chiobj.set_weights(opts.weights, opts.dweights);     
+    std::valarray<double> chi1weights(opts.weights); if (chi1weights.size()==0) { chi1weights.resize(proj.n); chi1weights=1.0; }
+    
+    std::cerr<<"Setting up pcoords\n";
     chiobj.set_vars(pcoords); 
 
      std::cerr<<"Setting up iteroptions\n";
@@ -1309,9 +1458,12 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
     AnnealingOptions saop(opts.saopts);
     ParaOptions ptop(opts.ptopts);    
     ConjGradOpts cgop(opts.cgopts);
+    NestSampOptions nsop(opts.nsopts);
+    
     if (cgop.maxiter==0) cgop.maxiter=opts.steps; 
     if (saop.steps==0) saop.steps=opts.steps; 
     if (ptop.steps==0) ptop.steps=opts.steps; 
+    if (nsop.steps==0) nsop.steps=opts.steps; 
     
     
     std::valarray<double> rpos; double rvalue;
@@ -1330,8 +1482,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
         
         std::cerr<<"Pointwise global minimization\n";
         for (unsigned long ip=0; ip<proj.n; ip++)
-        {
-            std::cerr<<"Minimizing pt. "<<ip<<", weight: "<<chiobj.weights[ip]<<"\n";
+        {            
             unsigned long ngrid=opts.grid1; double wgrid=opts.gridw;
             if (proj.d!=2) ERROR ("Integral projector is implemented only for 2D");
             std::valarray<double> gx(ngrid), gy(ngrid);
@@ -1353,7 +1504,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
                 for (unsigned long j=0; j<ngrid; j++)
             {
                 x[0]=gx[i]; x[1]=gy[j];
-                compute_chi1(x,chiobj.weights,chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,gridU(i,j),rg);
+                compute_chi1(x,chi1weights,chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,gridU(i,j),rg);
                 //std::cerr<<x[0]<<","<<x[1]<<">>"<<gridU(i,j)<<":"<<rg[0]<<","<<rg[1]<<"\n";
                 gridDU(i,j,0)=rg[0];  gridDU(i,j,1)=rg[1];
             }
@@ -1370,7 +1521,7 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
             
             
             x0[0]=x[0]=proj.p(ip,0); x0[1]=x[1]=proj.p(ip,1); 
-            compute_chi1(x,chiobj.weights,chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,initf,rg);
+            compute_chi1(x,chi1weights,chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,initf,rg);
             minchi=initf;
 
             
@@ -1380,14 +1531,15 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
             {
                 xx[0]=gx[i]; xx[1]=gy[j];
                 bicub.get_ydy(xx,f,df);
+                //std::cerr<<xx[0]<<","<<xx[1]<<">intrp>"<<f<<":"<<df[0]<<","<<df[1]<<"\n";
                 if (f<minchi) { fmoved=true; minchi=f; minx=xx; }
             }
             
             if (!fmoved) continue; // do not optimize if it was not moved.
             //double checks on uninterpolated functionx[0]=gx[i]; x[1]=gy[j];
             x[0]=minx[0]; x[1]=minx[1];
-            compute_chi1(x,chiobj.weights,chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,f,rg);
-            if (f>=initf) { std::cerr<<"False positive due to interpolation\n"; continue; } // it's possible that a (very small) decrease was due to errors in interpolant
+            compute_chi1(x,chi1weights,chiobj.imix,opts.tfunL,chiobj.hd,chiobj.fhd,proj.p,ip,f,rg);
+            if (f>=initf) { std::cerr<<"False positive "<<f<<" rather than "<< minchi << " "<< initf<< " due to  interpolation\n"; continue; } // it's possible that a (very small) decrease was due to errors in interpolant
             proj.p(ip,0)=minx[0]; proj.p(ip,1)=minx[1];
             
             std::ofstream restf((std::string("global.")+int2str(ip)).c_str());
@@ -1420,22 +1572,33 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
     }
     else
     {
+        std::cerr<<"Starting iterative optimization...\n";
         switch (opts.minmode)
         {
             case NLDRCGradient:
                 min_conjgrad(chiobj,pcoords,rpos, rvalue, cgop );
                 break;
             case NLDRSimplex:
+                chiobj.dogradient=false;
                 min_simplex(chiobj,make_simplex(pcoords,opts.simplex_spread, opts.simplex_mult),pcoords,ferr, iops);
                 break;
+            case NLDRNestSamp:
+                std::cerr<<"Testing nested sampling...\n";
+                chiobj.dogradient=false;
+                nsop.mc_wall=opts.nssize; nsop.killsteps=opts.nssteps; nsop.psize=proj.d;
+                min_nestsamp(chiobj,make_walkers(pcoords.size(),opts.nswalkers,opts.nssize), pcoords, ferr, iops, nsop);
+                break;
             case NLDRAnnealing:
+                chiobj.dogradient=false;
                 sim_annealing(chiobj,pcoords,rpos,rvalue,saop);
                 break;
             case NLDRParatemp:
                 para_temp(chiobj,pcoords,rpos,rvalue,ptop);
                 break;                
         }
+        chiobj.dogradient=true;
     }
+    
     
     chiobj.get_vars(pcoords);
     for (unsigned long i=0; i<proj.n; i++) 
@@ -1457,15 +1620,15 @@ void NLDRITER(FMatrix<double>& points, NLDRProjection& proj, const NLDRITEROptio
                 dij=(chiobj.fhd(i,j)-opts.tfunL.f(distLD(i,j)));
                 dij=(dij*dij*(1.0-chiobj.imix)
                         +chiobj.imix*(chiobj.hd(i,j)-distLD(i,j))*(chiobj.hd(i,j)-distLD(i,j)))
-                        *chiobj.weights[i]*chiobj.weights[j];
-                tww+=chiobj.weights[i]*chiobj.weights[j];
+                        *chi1weights[i]*chi1weights[j];
+                tww+=chi1weights[i]*chi1weights[j];
                 report.ld_errors[i]+=dij;
                 report.ld_errors[j]+=dij;
             }
         }
-        tw=chiobj.weights.sum();
+        tw=chi1weights.sum();
         report.ld_error=report.ld_errors.sum()*(0.5/tww);
-        for (unsigned long i=0; i<proj.n; i++) report.ld_errors[i]*=(1.0/(tw-chiobj.weights[i])/chiobj.weights[i]);
+        for (unsigned long i=0; i<proj.n; i++) report.ld_errors[i]*=(1.0/(tw-chi1weights[i])/chi1weights[i]);
     }
     delete chiobj.metric;
 }

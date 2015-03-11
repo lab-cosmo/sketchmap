@@ -16,14 +16,16 @@ using namespace toolbox;
 void banner() 
 {
     std::cerr
-            << " USAGE: dimred -D hi-dim -d low-dim -pi period [-v|-vv] [-h] [-w] [-init file]  \n"
-            << "               [-center] [-plumed] [-fun-hd s,a,b] [-fun-ld s,a,b] [-imix mix]  \n"
-            << "               [-preopt steps] [-grid gw,g1,g2] [-gopt steps] [-similarity]     \n"            
+            << " USAGE: dimred -D hi-dim -d low-dim -pi period [-v|-vv] [-h] [-w] [-dot]        \n"
+            << "              [-init file] [-center] [-plumed] [-fun-hd s,a,b] [-fun-ld s,a,b]  \n"
+            << "              [-imix mix] [-preopt steps] [-grid gw,g1,g2] [-gopt steps]        \n"            
+            << "              [-similarity]                                                     \n"
             << "                                                                                \n"
             << " compute the dimensionality reduction of data points given in input. The high   \n"
             << " dimension is set by -D option, and the projection is performed down to the     \n"
             << " dimensionality specified by -d. Optionally, high-dimensional data may be       \n"
-            << " assumed to lie in a hypertoroidal space with period -pi.                       \n"
+            << " assumed to lie in a hypertoroidal space with period -pi. -dot uses a scalar    \n"
+            << " product based distance.                                                        \n"
             << " Data must be provided in input in the format                                   \n"
             << " X1_1, X1_2, ... X1_D [w1]                                                      \n"
             << " X2_1, X2_2, ... X2_D [w2]                                                      \n"
@@ -52,9 +54,9 @@ int main(int argc, char**argv)
    // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
     CLParser clp(argc,argv);    
-    double irnd, imix, ptfac, ptdt, pttau;
-    unsigned long D,d,dts,nn, presteps, gsteps, pluneigh, npt; 
-    double sm, neps,peri,speri; bool fverb, fveryverb, fplumed, fhelp,  fweight, fcenter, fsimil, fwarp, fwwarp;
+    double irnd, imix, ptfac, ptdt, pttau, nssize;
+    unsigned long D,d,dts,nn, presteps, gsteps, pluneigh, npt, nnested, nssteps; 
+    double sm, neps,peri,speri; bool fverb, fveryverb, fplumed, fhelp,  fweight, fcenter, fsimil, fdot, fwarp, fwwarp;
     std::string fmds, finit, fdhd, fdld, gpars, itermode, tempopts;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
             clp.getoption(d,"d",(unsigned long) 2) &&
@@ -63,6 +65,7 @@ int main(int argc, char**argv)
             clp.getoption(speri,"spi",0.0) &&
             clp.getoption(fverb,"v",false) &&  
             clp.getoption(fweight,"w",false) &&
+            clp.getoption(fdot,"dot",false) &&
             clp.getoption(fveryverb,"vv",false) &&
             clp.getoption(fhelp,"h",false) &&
             clp.getoption(fplumed,"plumed",false) && 
@@ -83,9 +86,11 @@ int main(int argc, char**argv)
             clp.getoption(npt,"pt-replica",(unsigned long) 4) &&
             clp.getoption(ptdt,"pt-dt", 1.0) &&
             clp.getoption(pttau,"pt-tau", 10.0) &&
-
             clp.getoption(sm,"smooth",-1e-3) &&  
             clp.getoption(nn,"neigh",(unsigned long) 4) &&
+            clp.getoption(nnested,"nswalkers",(unsigned long) 10) &&
+            clp.getoption(nssteps,"nssteps",(unsigned long) 10) &&
+            clp.getoption(nssize,"nssize", 1.0) &&
             clp.getoption(neps,"ncut",0.0) && 
             clp.getoption(pluneigh,"nplumed",(unsigned long) 10);
 
@@ -107,7 +112,7 @@ int main(int argc, char**argv)
     for (int i=0; i<plist.size(); i++) for (int j=0; j<D; j++) mpoints(i,j)=plist[i][j];
 
     NLDRProjection nlproj;
-    NLDRMetricPBC nperi; NLDRMetricEuclid neuclid; NLDRMetricSphere nsphere;
+    NLDRMetricPBC nperi; NLDRMetricEuclid neuclid; NLDRMetricSphere nsphere;  NLDRMetricDot ndot;
     nperi.periods.resize(D); nperi.periods=peri;
     nsphere.periods.resize(D); nsphere.periods=speri;
          
@@ -117,10 +122,18 @@ int main(int argc, char**argv)
     else if (speri==0) { mdsopts.metric=&nperi; }
     else { mdsopts.metric=&nsphere; }
     
+    if (fdot) 
+    {
+       std::cerr<<"Using dot product distance!\n";
+       if (peri!=0 || speri!=0) ERROR("Cannot use periodic options together with dot product distance.");
+       mdsopts.metric=&ndot;
+    }
+    
     NLDRITEROptions iteropts;
     NLDRITERReport iterreport;
     std::valarray<double> tfpars, fhdpars(0.0,3), fldpars(0.0,3), fgrid(0.0,3);
     iteropts.lowdim=d; iteropts.verbose=fveryverb; iteropts.metric=mdsopts.metric;
+    iteropts.nswalkers = nnested;  iteropts.nssize = nssize; iteropts.nssteps=nssteps;
 
     if (fdhd=="identity")
     { tfpars.resize(0); iteropts.tfunH.set_mode(NLDRIdentity,tfpars); }
@@ -183,6 +196,7 @@ int main(int argc, char**argv)
     else if (itermode=="simplex") iteropts.minmode=NLDRSimplex;
     else if (itermode=="anneal") iteropts.minmode=NLDRAnnealing;
     else if (itermode=="paratemp") iteropts.minmode=NLDRParatemp;
+    else if (itermode=="nested") iteropts.minmode=NLDRNestSamp;
 
     std::cerr<<"hey "<<itermode<<" "<<iteropts.minmode<<"\n";
     std::valarray<double> sat(0.0,2); csv2floats(tempopts,sat);

@@ -17,8 +17,8 @@ void banner()
 {
     std::cerr
             << " USAGE: dimdist -D hi-dim -d low-dim -P hd-file -p ld-file -pi period [-w]      \n"
-            << "               [-maxd maxd[ maxd2]] [-nbin nbin[ nbin2]] [-wbin wbin]           \n"
-            << "               [-gnuplot] [-h] [-lowmem]                                        \n"
+            << "               [-dot] [-maxd maxd[ maxd2]] [-nbin nbin[ nbin2]] [-wbin wbin]    \n"
+            << "               [-gnuplot] [-h] [-lowmem] [-Isim] [-isim] [-osim]                \n"
             << "                                                                                \n"
             << " computes a histogram of D-d fits based on the lists of points given in input.  \n"
             << " dimension is set by -D option, and the projection is performed down to the     \n"
@@ -28,22 +28,28 @@ void banner()
             << " distances, using the scale parameter sigma.                                    \n"
             << " Data must be provided in the files set by -P and -p in the form:               \n"
             << " X1_1, X1_2, ... X1_D                                                           \n"
-            << " X2_1, X2_2, ... X2_D                                                           \n"
+            << " X2_1, X2_2, ... X2_D                                                           \n"            
             << " Output is given as Di di n(Di,di) dD dd, optionally [-gnuplot] with breaks     \n"
             << " to make it compatible with gnuplot. [-lowmem] avoids storing distances in      \n"
-            << " memory, which may be necessary when a large number of samples is analyzed.     \n";
+            << " memory, which may be necessary when a large number of samples is analyzed.     \n"
+            << " -osim prints out the distance matrix between all of the D dim. points.         \n"
+            << " -isim reads the distance matrix between all of the d dim. points (n-1)(n-2)/2  \n"
+            << " -Isim reads the distance matrix between all of the D dim. points (n-1)(n-2)/2  \n"
+            ;
 }
 typedef struct { double D, d; } dpair;
 
 int main(int argc, char**argv)
 {
     CLParser clp(argc,argv);
-    unsigned long D, d; double peri, speri, wbin; bool fgnuplot, fhelp, fweight, flowmem;
+    unsigned long D, d; double peri, speri, wbin; bool fgnuplot, fhelp, fweight, flowmem, fdot, fdosim;
     std::vector<double> maxd; std::vector<unsigned long> nbin;
     std::string fmds, fhd, fld;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
             clp.getoption(d,"d",(unsigned long) 0) &&
             clp.getoption(peri,"pi",0.0) &&
+            clp.getoption(fdot,"dot",false) &&
+            clp.getoption(fdosim,"osim",false) &&
             clp.getoption(speri,"spi",0.0) &&
             clp.getoption(fhelp,"h",false) &&
             clp.getoption(fweight,"w",false) &&
@@ -75,6 +81,7 @@ int main(int argc, char**argv)
     
     HP.resize(plist.size(), D);
     for (unsigned long i=0; i<plist.size(); ++i) for (unsigned long j=0; j<D; ++j) HP(i,j)=plist[i][j];
+    std::cerr<<"Finished reading points\n";
     
     if (d>0) {
         point.resize(d); plist.clear();
@@ -89,7 +96,7 @@ int main(int argc, char**argv)
         if (lp.rows()!=HP.rows()) ERROR("Mismatch between hi-d and low-d point sets");
     }
     
-    NLDRMetricPBC nperi; NLDRMetricEuclid neuclid; NLDRMetricSphere nsphere;
+    NLDRMetricPBC nperi; NLDRMetricEuclid neuclid; NLDRMetricSphere nsphere; NLDRMetricDot ndot;
     nperi.periods.resize(D); nperi.periods=peri;
     nsphere.periods.resize(D); nsphere.periods=speri;
     NLDRMetric *metric;
@@ -97,6 +104,13 @@ int main(int argc, char**argv)
     if (peri==0.0 && speri==0.0) metric=&neuclid;
     else if (speri==0) { metric=&nperi; }
     else { metric=&nsphere; }
+    
+    if (fdot) 
+    {
+       std::cerr<<"Using dot product distance!\n";
+       if (peri!=0 || speri!=0) ERROR("Cannot use periodic options together with dot product distance.");
+       metric=&ndot;
+    }
     
     //computes distances. this could be made on the fly, but would make impossible
     //set automatically the size of the histogram
@@ -111,6 +125,10 @@ int main(int argc, char**argv)
     { 
         distances[k].D=metric->dist(&HP(i,0),&HP(j,0),D);
         dweight[k]=pweight[i]*pweight[j];
+        if (fdosim) {
+           std::cout<<distances[k].D<<" ";
+           if (j==i-1) std::cout <<"\n";
+        }
         if (distances[k].D>mxD) mxD=distances[k].D;
         if (d>0)
         {
@@ -125,6 +143,10 @@ int main(int argc, char**argv)
         double kD, kd;
         kD=metric->dist(&HP(i,0),&HP(j,0),D);
         if (kD>mxD) mxD=kD;
+        if (fdosim) {
+           std::cout<<kD<<" ";
+           if (j==i-1) std::cout <<"\n";
+        }
         if (d>0)
         {
             kd=neuclid.dist(&lp(i,0),&lp(j,0),d);
@@ -132,7 +154,7 @@ int main(int argc, char**argv)
         }
         ++k;
     }
-    
+    if (fdosim) return 0;
     if (d>0)
     {
         //creates n-dimensional histogram and bins it

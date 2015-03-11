@@ -13,8 +13,8 @@ using namespace toolbox;
 void banner() 
 {
     std::cerr
-            << " USAGE: landmark -D dim -n nlandmark [-pi period] [-spi period] [-wi]           \n"
-            << "                [-i] [-w] [-ifirst i] [-seed s] [-unique]                       \n"
+            << " USAGE: landmark -D dim -n nlandmark [-pi period] [-spi period] [-wi] [-dot]    \n"
+            << "                [-i] [-w] [-ifirst i] [-seed s] [-unique] [-isim]               \n"
             << "                [-mode stride|random|minmax|resample|staged]                    \n"
             << "                [-gamma g] [-wgamma wg]                                         \n"
             << " tassellation and assigning the original N points. [-i] print indices of points.\n"
@@ -27,6 +27,8 @@ void banner()
             << " tassellation and assigning the original N points. [-wgamma] specifies that     \n"
             << " weights must be manipolated by making them match the probability density       \n"
             << " elevated at power wg. [-i] print indices of points.                            \n"
+            << " [-dot] uses a scalar product metric. [-isim] reads in the similarity matrix    \n"
+            << " (lower-triangular part).                                                       \n"
             << " Generally the first point is chosen randomly unless otherwise specified with   \n"
             << " the option [-ifirst]. The PRNG seed can be set by [-seed] and one can make sure\n"
             << " that the selected landmarks are unique by [-unique].                           \n"
@@ -52,7 +54,7 @@ int main(int argc, char**argv)
     CLParser clp(argc,argv);
     unsigned long D,n,N,seed; 
     long ifirst;
-    bool fhelp, fweight, findex, flowm, finw, funique;
+    bool fhelp, fdot, fweight, findex, flowm, finw, funique;
     double peri, speri, gamma, wgamma; std::string smode;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
             clp.getoption(n,"n",(unsigned long) 100) &&
@@ -67,6 +69,7 @@ int main(int argc, char**argv)
             clp.getoption(gamma,"gamma",1.0) &&     
             clp.getoption(wgamma,"wgamma",1.0) &&            
             clp.getoption(speri,"spi",0.0) &&
+            clp.getoption(fdot,"dot",false) &&
             clp.getoption(peri,"pi",0.0);
     
     if (fhelp || !fok) { banner(); exit(1); }
@@ -90,7 +93,7 @@ int main(int argc, char**argv)
     for (unsigned long i=0; i<N; ++i) for (unsigned long j=0; j<D; ++j) HP(i,j)=plist[i][j];
     
     // metric objects initialized as per input    
-    NLDRMetricPBC nperi; NLDRMetricEuclid neuclid; NLDRMetricSphere nsphere;
+    NLDRMetricPBC nperi; NLDRMetricEuclid neuclid; NLDRMetricSphere nsphere; NLDRMetricDot ndot; 
     nperi.periods.resize(D); nperi.periods=peri;
     nsphere.periods.resize(D); nsphere.periods=speri;
     
@@ -98,6 +101,12 @@ int main(int argc, char**argv)
     if (peri==0.0 && speri==0.0) metric=&neuclid;
     else if (speri==0) { metric=&nperi; }
     else { metric=&nsphere; }
+    if (fdot) 
+    {
+       std::cerr<<"Using dot product distance!\n";
+       if (peri!=0 || speri!=0) ERROR("Cannot use periodic options together with dot product distance.");
+       metric=&ndot;
+    }
 
     //allocates space for the landmarks
     LP.resize(n, D); 
