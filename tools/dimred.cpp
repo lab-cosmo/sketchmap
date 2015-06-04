@@ -285,7 +285,20 @@ int main(int argc, char**argv)
     std::cerr<<"printing out\n"    ;    
     if (fplumed)
     {
-        std::cout << "NLANDMARKS " <<lplist.size()<<"\n\n";
+// COMPATIBLE WITH NEW VERSION OF PLUMED --SANDIP
+       std::cout << "DESCRIPTION: results from sketch-map analysis in PLUMED compatible format \n";
+       for (int i=0; i<hplist.size(); i++){
+           std::cout << "REMARK WEIGHT="<<weights[i];
+           for (int h=0; h<d; h++) std::cout <<" SKETCHMAP."<<h+1<<"="<<lplist[i][h];std::cout<<"\n";
+           std::cout << "REMARK ARG=";
+           for (int h=0; h<D-1; h++) std::cout <<"d."<<h+1<<",";std::cout<<"d."<<D<<"\n";
+           std::cout << "REMARK";
+           for (int h=0; h<D; h++) std::cout <<" d."<<h+1<<"="<<hplist[i][h];
+           std::cout<<"\n";
+           std::cout<<"END\n"; 
+       }
+
+/*        std::cout << "NLANDMARKS " <<lplist.size()<<"\n\n";
         //std::cout << "SIGMOID "<<hdsigma<<"\n\n"; //!TODO output for sigma in low-dim as well
         std::cout<<"LOW_D_FUNCTION TYPE "<<
                 (fdld=="identity"?"distance":"xsigmoid"
@@ -311,7 +324,6 @@ int main(int argc, char**argv)
             { std::cout<<weights[i]<<"\n"; }
             std::cout << "WEIGHTS<\n\n";
         }
-        /*
         std::cerr<<"Computing " <<pluneigh<<" Plumed neighbours\n";
         FMatrix<double> MP; 
         std::cerr<<"matrix conversion\n";
