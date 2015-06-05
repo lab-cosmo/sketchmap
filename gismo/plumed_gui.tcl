@@ -139,8 +139,8 @@ proc plumedVis::create_gui {args} {
   # This controls the plotter
   trace add variable plumedVis::xcoord write [namespace code plumedVis::updateColvars ] 
   trace add variable plumedVis::ycoord write [namespace code plumedVis::updateColvars ]
-  trace add variable plumedVis::scoord write [namespace code plumedVis::updateColvars ]
-  trace add variable plumedVis::ccoord write [namespace code plumedVis::updateColvars ]
+  trace add variable plumedVis::scoord write [namespace code { plumedVis::updateColvars -keepzoom 1 } ]
+  trace add variable plumedVis::ccoord write [namespace code { plumedVis::updateColvars -keepzoom 1 } ]
   trace add variable plumedVis::fcoord write [namespace code plumedVis::updateFes]
   trace add variable plumedVis::showfesdiff write [namespace code plumedVis::drawGraph]
   trace add variable plumedVis::fesdisplay write [namespace code plumedVis::drawGraph]
@@ -174,8 +174,8 @@ proc plumedVis::destroy {args} {
    # Remove the traces   
    trace remove variable plumedVis::xcoord write [namespace code plumedVis::updateColvars ] 
    trace remove variable plumedVis::ycoord write [namespace code plumedVis::updateColvars ] 
-   trace remove variable plumedVis::scoord write [namespace code plumedVis::updateColvars ]
-   trace remove variable plumedVis::ccoord write [namespace code plumedVis::updateColvars ]
+   trace remove variable plumedVis::scoord write [namespace code { plumedVis::updateColvars -keepzoom 1 } ]
+   trace remove variable plumedVis::ccoord write [namespace code { plumedVis::updateColvars -keepzoom 1} ]
    trace remove variable plumedVis::hideColvars write [namespace code plumedVis::updateColvars ]
    trace remove variable plumedVis::fcoord write [namespace code plumedVis::updateFes]
    trace remove variable plumedVis::showfesdiff write [namespace code plumedVis::drawGraph] 
@@ -428,10 +428,23 @@ proc plumedVis::updateColvars {args} {
    variable fcoord
    variable allcolvars
    variable w
+   variable ::gtPlot::bounds
 
    # Update the fes menu
-   ::fesTools::updateMenu $w.top.pmenus.faxis.m -xcoord $xcoord -ycoord $ycoord -variable plumedVis::fcoord
+   ::fesTools::updateMenu $w.top.pmenus.faxis.m -xcoord $xcoord -ycoord $ycoord -variable plumedVis::fcoord   
 
+   # stores the canvas boundaries
+   set keepzoom no   
+   set canv $w.fr.canv
+   if { [getargs $args "-keepzoom" 0 ] != 0 && [ info exists bounds([list $canv tymax]) ]} {
+     set txmin $bounds([list $canv xmin])
+     set tymin $bounds([list $canv ymin])
+     set txmax $bounds([list $canv xmax])
+     set tymax $bounds([list $canv ymax])
+     puts "Saving boundaries $txmin $tymin $txmax $tymax     "
+     set keepzoom yes
+   }
+            
    # Delete the bar charts of all the colvars 
    ::gtPlot::unplotData $w.fr.canv -datatag allcolvars ; set allcolvars 0
 
@@ -441,9 +454,9 @@ proc plumedVis::updateColvars {args} {
 
    # Delete any old free energy surfaces
    set fcoord "none"
-
+   
    # Return if we are not plotting anything
-   if { $xcoord!="none" && $ycoord!="none" } { 
+   if { $xcoord!="none" && $ycoord!="none" } {     
       # Check that there is data for the molecule on top
       if { ![ ::cvlist::exists -datatag pgui ] } {
          updateMenus
@@ -473,11 +486,20 @@ proc plumedVis::updateColvars {args} {
       for { set i 0 } { $i< [molinfo top get numframes] } { incr i } { lappend frames $i }
 
       # Pass the data to the traj plotter
-      ::cv_traj::readData -datatag colvar -npoints [molinfo top get numframes] -xdata $xdata -ydata $ydata -cdata $cdata -weights $weights -frames $frames
+      ::cv_traj::readData -datatag colvar -npoints [molinfo top get numframes] -xdata $xdata -ydata $ydata -cdata $cdata -weights $weights -frames $frames    
    }
+
+   # Restores previous zoom state if needed
+   if { $keepzoom } { ::gtPlot::setAxis $w.fr.canv $txmin $txmax $tymin $tymax }
 
    # Redraw the graph
    drawGraph
+   
+   # Restores previous zoom state if needed
+   if { $keepzoom } { 
+      ::gtPlot::setAxis $w.fr.canv $txmin $txmax $tymin $tymax 
+      ::gtPlot::drawGraph $w.fr.canv
+      }
 }
 
 proc plumedVis::updateFesMenu {args} {
