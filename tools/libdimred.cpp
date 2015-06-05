@@ -34,6 +34,7 @@ extern "C" {
 }};
 #endif
 
+
 namespace toolbox {
 #define __NLDR_SIGMA
 
@@ -172,8 +173,8 @@ void NLDRFunction::set_mode(NLDRFunctionMode mode, const std::valarray<double>& 
 
 #define NLDR_INTERPOL_EPS 1e-3
 void NLDRFunction::mkinterpol(double mx)
-{
-   if (mx<ipxmax || isnan(mx)) return;
+{  
+   if (mx<ipxmax || std::isnan(mx)) return;
    
    
    ipxmax = mx*1.2; // give some extra space for interpolation
