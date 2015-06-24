@@ -130,5 +130,27 @@ div.code {
    padding:1em; font-family:"Courier"; font-weight:bold;
    background: #ffe4be;
 }
+/* for plumed codes */
+div.pcbox {
+  padding:0; margin:2em; background: #fff5f1; clear:both; display:block
+} 
 
+div.pcbox .head {
+  background: #FFAC8A; font-weight:bold;
+  padding:5px; margin:0; cursor:pointer;
+  }
+
+div.pcbox .body {
+  padding:0.5em; margin:0; 
+  }
+
+/* links & pc */
+a img { border:0 }
+
+.pcode {font-family:"Courier"; font-weight:bold;}
+
+div.pcode {
+   padding:1em; font-family:"Courier"; font-weight:bold;
+   background: #ffe4be;
+}
 

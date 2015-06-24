@@ -7,56 +7,14 @@
       "proximity" for the data set we want to project, we are now
       ready to run sketch-map. The minimization procedure can be quite 
       time-consuming, in particular if one is using many landmarks 
-      and/or very high dimensionality. The optimization is fully automated
-      using the shell script <span class="code">sketch-map.sh</span>,
-      which interactively asks the parameters to perform the minimization.
+      and/or very high dimensionality. 
    </p>
    
    <div class="cbox">
    <div class="head" id="tut-script-head" onclick="safe_toggle('tut-script','tut-script-head');">
-      sketch-map by script: running <span class="code">sketch-map.sh</span>   [+-]
+      running <span class="code">Sketchmap</span>   [+-]
    </div>
    <div class="body" id="tut-script" style="display: block;">
-      <p>
-        First, make sure that the <span class="code">SMAPROOT</span> variable 
-        defined inside <span class="code">sketch-map.sh</span> actually points 
-        to where the sketch-map executables are stored. Then, it suffices to run
-      </p>
-      <div class="code" >
-         ./sketch-map.sh
-      </div>
-      <p>
-        and input the various options as they are required. <br/>
-        For instance, to run the kind of sketch-map optimization which is described in details 
-        below, the interactive session would look like
-      </p>
-      <div class="code" >
-Please enter the dimensionality of input data 24 <br/>
-Are points weighted [y/n]? y <br/>
-Please enter the periodicity of input data [0 if non-periodic] 6.2831853 <br/>
-Please enter the input data file name highd-landmarks <br/>
-Please enter the output data prefix lowd <br/>
-Please enter high dimension sigma, a, b [e.g. 6.0 2 6 ] 6 12 12 <br/>
-Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] 6 1 2 <br/>
-      </div>
-      <p>
-        The script will then proceed to produce many intermediate optimization steps. Read
-        below if you are interested into the details, otherwise just find the final optimization 
-        result into <span class="code">&lt;prefix&gt;.gmds</span>. The sketch-map 
-        coordinates of the landmarks are in the first two columns.
-      </p>
-   </div>
-   </div>
-
-   <script type="text/javascript">safe_toggle('tut-script','tut-script-head');</script>
-   <p>
-      The sketchmap can also be run under PLUMED framework. The following code explains the functionality available in the current implementation of the sketchmap algorithm in PLUMED.
-   </p>
-   <div class="pcbox">
-   <div class="head" id="tut-script+plumed-head" onclick="safe_toggle('tut-script+plumed','tut-script+plumed-head');">
-      running <span class="code">Sketchmap</span> in PLUMED  [+-]
-   </div>
-   <div class="body" id="tut-script+plumed" style="display: block;">
       <p>
         Following code uses all dataset to run the sketch-map optimization which is decsribed in detail below.
       </p>
@@ -83,10 +41,11 @@ Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] 6 1 2 <br/>
 
    </div>
    </div>
-   <script type="text/javascript">safe_toggle('tut-script+plumed','tut-script+plumed-head');</script>
+   <script type="text/javascript">safe_toggle('tut-script','tut-script-head');</script>
    
-   <br/>
 
+   <br/>
+   <br/>
 
    <h2> A detailed description of the process </h2>
    
@@ -94,7 +53,7 @@ Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] 6 1 2 <br/>
    discuss in some length how to manually perform the steps which are automated
    by the sketch-map script.
 
-   <img src="pages/tuts/ala_mdsplot.png" alt="Linear MDS embedding of 12-ala data, colored based on one of the dihedrals" class="floatright"/>
+   <img src="pages/plumed_tuts/ala_mdsplot.png" alt="Linear MDS embedding of 12-ala data, colored based on one of the dihedrals" class="floatright"/>
    
    <h3> Getting a starting map: running linear MDS </h3>
    <p>
@@ -113,7 +72,7 @@ Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] 6 1 2 <br/>
       are colored according to the value of one of the dihedrals
       (so points of different colors should be projected far apart). 
    </p>   
-   <div class="cbox">
+   <div class="pcbox">
    <div class="head" id="tut-mds-head" onclick="safe_toggle('tut-mds','tut-mds-head');">
       running linear MDS [+-]
    </div>
@@ -122,20 +81,25 @@ Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] 6 1 2 <br/>
          You can get a linear MDS (PCA if the distance is Euclidean with no periodicity) 
          by just running <span class="code">dimred</span> without iterative minimization options
       </p>
-      <div class="code" >
+      <div class="pcode" >
          grep -v \# highd-landmarks |  dimred -D 24 -pi 6.283185 -d 2 -w -center > lowd-mds
       </div>
       <p>
-         Note that  <span class="code">dimred</span> expects on standard input the sequence of the 
+         Note that  <span class="pcode">dimred</span> expects on standard input the sequence of the 
          landmarks given as 
       </p>
-      <div class="code">
-        x<sub>1</sub>(1) x<sub>2</sub>(1) .... x<sub>D</sub>(1)  [w(1)]<br/>
-        x<sub>1</sub>(2) x<sub>2</sub>(2) .... x<sub>D</sub>(2)  [w(1)]<br/>        
-        ....
+      <div class="pcode">
+         CLASSICAL_MDS ...<br/>
+            ATOMS=1-256<br/>
+            METRIC=OPTIMAL-FAST<br/> 
+            USE_ALL_DATA<br/>
+            NLOW_DIM=2<br/>
+            OUTPUT_FILE=rmsd-embed<br/>
+         ... CLASSICAL_MDS<br/>
+
       </div>         
       <p>
-         In this case we specify the <span class="code">-w</span> option, so the weights must be present
+         In this case we specify the <span class="pcode">-w</span> option, so the weights must be present
          as the last entry on each line. Note that for MDS weights are ignored, but we keep them in the file 
          as will be used for later steps. Comments lines which may be present in the landmark file should be 
          deleted or filtered out as we are doing here.<br/>
@@ -144,10 +108,9 @@ Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] 6 1 2 <br/>
       </p>
    </div>
    </div>
-   <script type="text/javascript">safe_toggle('tut-mds','tut-mds-head');</script>
-
-  
-   <img src="pages/tuts/ala_gmdsplot.png" alt="Linear MDS embedding of 12-ala data, colored based on one of the dihedrals" class="floatleft"/>
+   <script type="text/javascript">safe_toggle('tut-mds','tut-mds-head');</script>    
+   
+   <img src="pages/plumed_tuts/ala_gmdsplot.png" alt="Linear MDS embedding of 12-ala data, colored based on one of the dihedrals" class="floatleft"/>
    <h3> Iterative metric MDS and pointwise-global optimization </h3>
       <p>      
          Conventional MDS is not really trying to match pairwise distances in high dimension to low-dimension,
@@ -193,7 +156,7 @@ Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] 6 1 2 <br/>
       mixed up.
    </p>
    
-   <img src="pages/tuts/ala_smap_ani.gif" alt="Simulated annealing optimization of sketch-map: varying from metric MDS to sketchmap as imig goes to zero" class="floatright"/>
+   <img src="pages/plumed_tuts/ala_smap_ani.gif" alt="Simulated annealing optimization of sketch-map: varying from metric MDS to sketchmap as imig goes to zero" class="floatright"/>
    <h3> Finally - sketch-map </h3>
    <p>
       In simpler cases, it is now possible to just run again <span class="code">dimred</span>, starting from the 

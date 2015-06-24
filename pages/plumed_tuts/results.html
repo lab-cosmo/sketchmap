@@ -1,0 +1,52 @@
+<div class="columns">
+   
+   <img src="pages/plumed_tuts/ala_smap_angles.gif" alt="Sketch-map embedding of the 12-ala colored according to the different dihedrals" class="floatright"/>
+   <h2>Analyzing the results</h2>
+      <p>
+      Unless you are working for a model system for which you know already which kind of embedding
+      to expect, it is not straightforward to judge the success of the fitting procedure. There are
+      many ways to post-process the projected points to get some qualitative -- and quantitative -- 
+      assessment of the outcome of the fit. <br/>
+      A first possibility is to color the projected points according to different coordinates of the 
+      corresponding high-dimensional samples: if the fitting was successful one would expect points
+      of similar color to be clustered together, rather than mixed up with points of different color. 
+      </p>         
+      <p>
+      Another, more quantitative, analysis can be performed using the <span class="code">dimdist</span>
+      utility. With the appropriate parameters, <span class="code">dimdist</span> generates a D-d plot,
+      i.e. an histogram which measures the probability that, for any high-dimensional pairwise distance D,
+      the distance between the corresponding projections will be d. A completely faithful embedding would 
+      preserve the distances, so the D-d histogram should be a series of delta function along the D=d diagonal.
+      Having performed sketch-map, instead, one expects would already be content when the majority of the 
+      density is concentrated in the D&lt;&sigma;,d&lt;&sigma; and D&gt;&sigma;,d&gt;&sigma; regions.
+      </p>
+      
+   <div class="cbox">
+   <div class="head" id="tut-smap-head" onclick="safe_toggle('tut-smap','tut-smap-head');">
+      computing D-d plots [+-]
+   </div>
+   <div class="body" id="tut-smap" style="display: block;">
+      D-d plots can be generated using the <span class="code">dimdist</span> utility.
+      Note that both the high-dim and low-dim data set must be provided, in files containing
+      one point per line, without headers. Optionally, the high-dimension file may contain
+      weights (<span class="code">-w</span>).
+      <div class="code" >
+         dimdist -D 24 -d 2 -w -P highd_landmarks_noheader -p lowd_projection -pi 6.283185 -lowmem 
+             -gnuplot -maxd 15 50 -nbin 150 250 -wbin 0.2 > ddplot.histo         
+      </div>
+      <img src="pages/plumed_tuts/ala_smap_combo.gif" alt="Dd-plot and the corresponding embedding for different mixing parameters" class="center"/> 
+      <p style="font-style:italic;">
+         Mixed metric MDS/sketch-map embedding, with mixing parameter going from pure MDS to pure sketch-map.
+         The embedding (coloured according to one of the dihedrals) is shown side by side with the corresponding
+         D-d plot. Note how metric MDS tends to have high density in the D&gt;&sigma;,d&lt;&sigma;. This means that
+         "far" points are mapped to "close" points in low-dimension: this is detrimental if the mapping is to 
+         be used to classify configurations, to compute free energies or perform enhanced sampling.
+         Sketch-map, on the other hand, manages to keep most of the density in the "good" regions: even though
+         the structure of the data set is deformed, most of the topological relations that matter
+         have been preserved.
+      </p>
+   </div>
+   </div>      
+   <script type="text/javascript">safe_toggle('tut-smap','tut-smap-head');</script>  
+      
+</div>

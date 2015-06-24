@@ -1,0 +1,132 @@
+<div class="columns">
+
+  <img src="pages/plumed_tuts/ala_landmark.png" alt="100 minmax landmarks picked from 12ala data. Circles area is proportional to weight." class="floatleft"/>
+  <h2> Selecting landmark points with PLUMED </h2>
+  <p>
+  The sketch-map calculation is expensive and its expense increases sharply with the number of points whose projections you are
+  endeavoring to find simultaneously. Moreover, the iterative minimization has more chances of getting stuck in a  poor local minimum
+  when the number of variables to be optimized grows larger.  It is therefore not feasible to fit projections for all the points in the trajectory
+  at once. Hence, before running the sketch-map algorithm we must select a set of representative, landmark, points from the trajectory.
+  There are following strategies we use to do this selection:
+  </p>
+  
+  <ul>
+  <li> Select points randomly from the trajectory - <i>with this approach there are many landmarks in the vicinity of the basins and more poorly sampled regions are less well represented </i></li>
+
+   <div class="pcbox">
+   <div class="head" id="tut-random-head" onclick="safe_toggle('tut-random','tut-random-head');">
+      using PLUMED for Landmarks Selection [+-]
+   </div>
+   <div class="body" id="tut-random" style="display: block;">
+      <p>
+      The <span class="code">SelectRandomFrames</span> allows user to select a small, representative subset of the high-dimensional data randomly, so that dimensionality reduction can be performed more effectively. <span class="code">USE_ALL_DATA</span> can be replaced with <span class="code">RUN=ii</span> (a number) to use datapoints only after ii steps while selecting randomly from the data.
+      </p>
+      <div class="code" >
+         d: READ FILE=highd-dataset.in VALUES=c.*<br>
+         OUTPUT_LANDMARKS ... <br>
+          ARG=d.*<br>
+          USE_ALL_DATA<br>
+          METRIC=EUCLIDEAN<br>
+          LANDMARKS={RANDOM N=300 SEED=-3241 }<br>
+          LIST_FILE=landmark-random.out<br>
+          ... OUTPUT_LANDMARKS<br>
+      </div>
+      <p>
+      <span class="code">METRIC</span>  options specify the distance function employed,  <span class="code">RANDOM</span> keyword is used to specify the Random Sampling method to be employed and  <span class="code">N</span>  is used for the number of landmarks to be selected. <span class="code">LIST_FILE</span> is used to specify the output file where the landmarks are generated. <span class="code">SEED</span> specifies the seed for the random number generator. It should be given different values for different runs. You can download the example file, the plumed input file and the script to prepare the input file <a href='data/sketchmap-0.2.tar.bz2'> as a tarball</a>.
+      </p>
+   </div>
+   </div>
+   <script type="text/javascript">safe_toggle('tut-random','tut-random-head');</script>
+
+  <li> Select points using a farthest point strategy which starts with a random vertex as the first source, and iteratively selects the farthest point from the already selected sources - <i> the landmarks selected using this approach are more uniformly distributed across the whole of space which makes this approach succeptible to outliers </i></li>
+
+  <div class="cbox">
+   <div class="head" id="tut-fps-head" onclick="safe_toggle('tut-fps','tut-fps-head');">
+      using Farthest Point Sampling [+-]
+   </div>
+   <div class="body" id="tut-fps" style="display: block;">
+      <p>
+      The <span class="code">FarthestPointSampling</span> allows user to select a small, representative subset of the high-dimensional data using Farthest Point Sampling technique. All the parameters remain same as defined in Random Sampling method except the key word <span class="code">FPS</span> is used instead of <span class="code">RANDOM</span>
+      </p>
+      <div class="code" >
+         d: READ FILE=highd-dataset.in VALUES=c.*<br>
+         OUTPUT_LANDMARKS ... <br>
+          ARG=d.*<br>
+          USE_ALL_DATA<br>
+          METRIC=EUCLIDEAN<br>
+          LANDMARKS={FPS N=300 SEED=1 }<br>
+          LIST_FILE=landmark-random.out<br>
+          ... OUTPUT_LANDMARKS<br>
+      </div>
+      <p>
+        You can download the example file, the plumed input file and the script to prepare the input file <a href='data/sketchmap-0.2.tar.bz2'> as a tarball</a>.
+      </p>
+   </div>
+   </div>
+  <script type="text/javascript">safe_toggle('tut-fps','tut-fps-head');</script>
+
+
+  <li> Select points using stride - <i> the landmarks are selected after skipping uniform number of frames between two selections. The algorithm calculates the uniform stride length with the number of required landmarks and the total data. </i></li>
+   <div class="cbox">
+   <div class="head" id="tut-stride-head" onclick="safe_toggle('tut-stride','tut-stride-head');">
+      using Sampling with Stride [+-]
+   </div>
+   <div class="body" id="tut-stride" style="display: block;">
+      <p>
+      The <span class="code">StagedSampling</span> allows user to select a representative subset of the high-dimensional data using Staged Sampling technique. All the parameters remain same as defined in Random Sampling method except the key word <span class="code">STAGED</span> is used and another parameter <span class="code">GAMMA</span> is specified which determines TODO.
+      </p>
+      <div class="code" >
+         d: READ FILE=highd-dataset.in VALUES=c.*<br>
+         OUTPUT_LANDMARKS ... <br>
+          ARG=d.*<br>
+          USE_ALL_DATA<br>
+          METRIC=EUCLIDEAN<br>
+          LANDMARKS={STAGED N=300 SEED=1 GAMMA=0.5}<br>
+          LIST_FILE=landmark-random.out<br>
+          ... OUTPUT_LANDMARKS<br>
+      </div>
+      <p>
+        You can download the example file, the plumed input file and the script to prepare the input file <a href='data/sketchmap-0.2.tar.bz2'> as a tarball</a>.
+      </p>      
+   </div>
+   </div>
+  <script type="text/javascript">safe_toggle('tut-stride','tut-stride-head');</script>   
+
+
+
+  <li> Select points using a staged sampling from the trajectory - <i> the landmarks are selected in two stages. First a relatively larger number of intermediate landmarks are selected, using farthest point sampling. After this these landmarks are used to calculate voronoi weights and random sampling is done based on the weights in each voronoi region and final selection is made.</i></li>
+     
+   <div class="cbox">
+   <div class="head" id="tut-staged-head" onclick="safe_toggle('tut-staged','tut-staged-head');">
+      using Staged Sampling [+-]
+   </div>
+   <div class="body" id="tut-staged" style="display: block;">
+      <p>
+      The <span class="code">StagedSampling</span> allows user to select a representative subset of the high-dimensional data using Staged Sampling technique. All the parameters remain same as defined in Random Sampling method except the key word <span class="code">STAGED</span> is used and another parameter <span class="code">GAMMA</span> is specified which determines TODO.
+      </p>
+      <div class="code" >
+         d: READ FILE=highd-dataset.in VALUES=c.*<br>
+         OUTPUT_LANDMARKS ... <br>
+          ARG=d.*<br>
+          USE_ALL_DATA<br>
+          METRIC=EUCLIDEAN<br>
+          LANDMARKS={STAGED N=300 SEED=1 GAMMA=0.5}<br>
+          LIST_FILE=landmark-random.out<br>
+          ... OUTPUT_LANDMARKS<br>
+      </div>
+      <p>
+        You can download the example file, the plumed input file and the script to prepare the input file <a href='data/sketchmap-0.2.tar.bz2'> as a tarball</a>.
+      </p>
+   </div>
+   </div>
+  <script type="text/javascript">safe_toggle('tut-staged','tut-staged-head');</script> 
+
+  </ul> 
+  
+
+  <p>
+     All of these strategies are implemented in the <span class="code">SelectRandomFrames</span>, <span class="code">FarthestPointSampling</span>, <span class="code">SelectWithStride</span> code and <span class="code">StagedSampling</span>.
+  </p>
+  The input file for the following routines can be generated using the script provided [here] 
+  
+</div>
