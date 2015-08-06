@@ -13,6 +13,9 @@ SMAP="$SMAPROOT/dimred"
 read -p "Please enter the dimensionality of input data " HD
 LD=2      #hardcoded, dimred only works with d=2 right now.
 
+read -p "Are we reading the similarity matrix? " SIM
+if [ $SIM = "y" ]; then SIM=" -similarity "; else SIM=""; fi
+
 read -p "Are points weighted [y/n]? " DOW
 if [ $DOW = "y" ]; then DOW=" -w "; else DOW=""; fi
 
@@ -33,13 +36,13 @@ read -p "Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] " SIGMALD ALD B
 rm log
 echo "Now running a preliminary iterative metric MDS and sketch-map."
 if [ ! -e $FILELD.imds ]; then
-   echo "$SMAP -vv -D $HD -d $LD $PI $DOW $DOT -center -preopt 100"
-   $SMAP -vv -D $HD -d $LD $PI $DOW $DOT -center -preopt 100 < $FILEHD > $FILELD.imds 2>>log
+   echo "$SMAP -vv -D $HD -d $LD $PI $DOW $DOT $SIM -center -preopt 100"
+   grep -v \#  $FILEHD | $SMAP -vv -D $HD -d $LD $PI $DOW $DOT $SIM -center -preopt 100 > $FILELD.imds 2>>log
 fi
 grep -v "#" $FILELD.imds | awk '{print $1, $2}' > tmp
 if [ ! -e $FILELD.ismap ]; then
-   echo "$SMAP -vv -D $HD -d $LD $PI $DOW $DOT -center -preopt 100 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp"
-   $SMAP -vv -D $HD -d $LD $PI $DOW $DOT -center -preopt 100 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp < $FILEHD > $FILELD.ismap 2>> log
+   echo "$SMAP -vv -D $HD -d $LD $PI $DOW $DOT $SIM -center -preopt 100 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp"
+   grep -v \#  $FILEHD | $SMAP -vv -D $HD -d $LD $PI $DOW $DOT $SIM -center -preopt 100 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp > $FILELD.ismap 2>> log
 fi
 
 GW=`awk 'BEGIN{maxr=0} !/#/{r=sqrt($1^2+$2^2); if (r>maxr) maxr=r} END{print maxr*1.2}' $FILELD.imds`;
@@ -52,8 +55,8 @@ for ((ITER=1; ITER<=$MAXITER; ITER++)); do
    MDERR=$NERR
    echo "Mixing in $IMIX"
    if [ ! -e $FILELD.gmds_$ITER ]; then
-      echo "Now running $SMAP -vv -D $HD -d $LD $PI $DOW $DOT -center -preopt 50 -grid $GW,21,201 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp -gopt 3 -imix $IMIX < $FILEHD > $FILELD.gmds_$ITER 2>>log"
-      $SMAP -vv -D $HD -d $LD $PI $DOW $DOT -center -preopt 50 -grid $GW,21,201 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp -gopt 3 -imix $IMIX < $FILEHD > $FILELD.gmds_$ITER 2>>log
+      echo "Now running $SMAP -vv -D $HD -d $LD $PI $DOW $DOT $SIM -center -preopt 50 -grid $GW,21,201 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp -gopt 3 -imix $IMIX < $FILEHD > $FILELD.gmds_$ITER 2>>log"
+      grep -v \#  $FILEHD | $SMAP -vv -D $HD -d $LD $PI $DOW $DOT $SIM -center -preopt 50 -grid $GW,21,201 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp -gopt 3 -imix $IMIX > $FILELD.gmds_$ITER 2>>log
    fi
    grep -v "#" $FILELD.gmds_$ITER | awk '{print $1, $2}' > tmp
    GW=`awk 'BEGIN{maxr=0} !/#/{r=sqrt($1*$1+$2*$2); if (r>maxr) maxr=r} END{print maxr*1.2}' $FILELD.gmds_$ITER`;
@@ -67,5 +70,5 @@ done
 echo "Doing final fit"
 ((ITER--))
 grep -v "#" $FILELD.gmds_$ITER | awk '{print $1, $2}' > tmp
-$SMAP -vv -D $HD -d $LD $PI $DOW $DOT -center -preopt 100 -grid $GW,21,201 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp -gopt 10 < $FILEHD > $FILELD.gmds 2>>log
+grep -v \#  $FILEHD | $SMAP -vv -D $HD -d $LD $PI $DOW $DOT $SIM -center -preopt 100 -grid $GW,21,201 -fun-hd $SIGMAHD,$AHD,$BHD -fun-ld $SIGMALD,$ALD,$BLD -init tmp -gopt 10 > $FILELD.gmds 2>>log
 
