@@ -16,7 +16,7 @@ void banner()
             << " USAGE: landmark -D dim -n nlandmark [-pi period] [-spi period] [-wi] [-dot]    \n"
             << "                [-i] [-w] [-ifirst i] [-seed s] [-unique] [-isim]               \n"
             << "                [-mode stride|random|minmax|resample|staged]                    \n"
-            << "                [-gamma g] [-wgamma wg]                                         \n"
+            << "                [-gamma g] [-wgamma wg] [-similarity]                           \n"
             << " tassellation and assigning the original N points. [-i] print indices of points.\n"
             << " selects n landmark points from N given in input, with dimensionality D, using  \n"
             << " a greedy MinMax approach (minmax, default), a constant-stride or random        \n"
@@ -27,8 +27,8 @@ void banner()
             << " tassellation and assigning the original N points. [-wgamma] specifies that     \n"
             << " weights must be manipolated by making them match the probability density       \n"
             << " elevated at power wg. [-i] print indices of points.                            \n"
-            << " [-dot] uses a scalar product metric. [-isim] reads in the similarity matrix    \n"
-            << " (lower-triangular part).                                                       \n"
+            << " [-dot] uses a scalar product metric. [-similarity] reads the similarity matrix.\n"
+            << "                                                                                \n"
             << " Generally the first point is chosen randomly unless otherwise specified with   \n"
             << " the option [-ifirst]. The PRNG seed can be set by [-seed] and one can make sure\n"
             << " that the selected landmarks are unique by [-unique].                           \n"
@@ -54,11 +54,12 @@ int main(int argc, char**argv)
     CLParser clp(argc,argv);
     unsigned long D,n,N,seed; 
     long ifirst;
-    bool fhelp, fdot, fweight, findex, flowm, finw, funique;
+    bool fhelp, fdot, fweight, findex, flowm, finw, funique, fsimil;
     double peri, speri, gamma, wgamma; std::string smode;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) && 
             clp.getoption(n,"n",(unsigned long) 100) &&
             clp.getoption(ifirst,"first",(long) -1) &&
+            clp.getoption(fsimil,"similarity",false) &&      
             clp.getoption(seed,"seed",(unsigned long) 12345) &&            
             clp.getoption(fhelp,"h",false) &&
             clp.getoption(fweight,"w",false) &&
@@ -138,10 +139,11 @@ int main(int argc, char**argv)
 //        for (unsigned long j=0; j<N; ++j) { mdlist[j]=metric->dist(&LP(0,0),&HP(j,0),D); }         
 //    }
 
-    // First point is picked at random -- except if otherwise specified     
+    // First point is picked at random -- except if otherwise specified    
+    if (fsimil && smode!="minmax") ERROR("Similarity selection is only (rudimentarily) implemented for minmax mode");
     if (ifirst<0) isel[0]=maxj=rndgen()*N; else isel[0]=maxj=ifirst; 
     LP.row(0)=HP.row(maxj);
-    for (unsigned long j=0; j<N; ++j) { mdlist[j]=metric->dist(&LP(0,0),&HP(j,0),D); }
+    for (unsigned long j=0; j<N; ++j) { mdlist[j]=(fsimil? HP(0,j): metric->dist(&LP(0,0),&HP(j,0),D) ); }
     
     std::cerr<<"picking "<<n <<" points out of "<<N<<"\n";
     bool isunique;
@@ -200,7 +202,7 @@ int main(int argc, char**argv)
             isel[i]=maxj;
             LP.row(i)=HP.row(maxj);
             for (unsigned long j=0; j<N; ++j) 
-            { dij=metric->dist(&LP(i,0),&HP(j,0),D); if (mdlist[j]>dij) mdlist[j]=dij; }
+            { dij=(fsimil ? HP(maxj,j) : metric->dist(&LP(i,0),&HP(j,0),D) ); if (mdlist[j]>dij) mdlist[j]=dij; }
         }
     }
     else if (smode=="resample")
