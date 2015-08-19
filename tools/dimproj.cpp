@@ -14,7 +14,7 @@ void banner()
     std::cerr
             << " USAGE: dimproj -D hi-dim -d low-dim -P hd-file -p ld-file [-pi period] [-dot]  \n"
             << "               [-w] [-grid gw,g1,g2 ] [-cgmin st] [-gt temp] [-path lambda]     \n"
-            << "               [-fun-hd s,a,b] [-fun-ld s,a,b] [-h] [-print]       < input      \n"
+            << "               [-fun-hd s,a,b] [-fun-ld s,a,b] [-h] [-print] [--similarity]      < input      \n"
             << "                                                                                \n"
             << " computes the projection of the points given in input, given landmark points.   \n"
             << " dimension is set by -D option, and the projection is performed down to the     \n"
@@ -41,9 +41,10 @@ void banner()
 
 int main(int argc, char**argv)
 {
+	//!!!! TODO SHOULD DOCUMENT SIMILARITY AND INDEX OPTIONS
     CLParser clp(argc,argv);
     unsigned long D,d,n,cgsteps; double gtemp, lambda;
-    std::string fP, fp, fdhd, fdld, gpars; bool fhelp, fdot, fprint, fweight;
+    std::string fP, fp, fdhd, fdld, gpars; bool fhelp, fdot, fprint, fweight, fsimil;  
     double peri, speri;
     bool fok=clp.getoption(D,"D",(unsigned long) 3) &&
             clp.getoption(d,"d",(unsigned long) 2) &&
@@ -58,6 +59,7 @@ int main(int argc, char**argv)
             clp.getoption(fhelp,"h",false) &&
             clp.getoption(fweight,"w",false) &&
             clp.getoption(fdot,"dot",false) &&
+            clp.getoption(fsimil,"similarity",false) &&
             clp.getoption(fprint,"print",false) &&
             clp.getoption(peri,"pi",0.0) &&
             clp.getoption(speri,"spi",0.0);
@@ -71,7 +73,7 @@ int main(int argc, char**argv)
 
     // reads points from standard input
     FMatrix<double> HP, lp;
-    std::vector<std::vector<double> > plist; std::vector<double> point(D), pweight;
+    std::vector<std::vector<double> > plist; std::vector<double> point(D), pweight; std::vector<int> pindex;
     while (sP.good())
     {
         double nw;
@@ -84,6 +86,7 @@ int main(int argc, char**argv)
     for (unsigned long i=0; i<plist.size(); ++i) for (unsigned long j=0; j<D; ++j) HP(i,j)=plist[i][j];
 
     point.resize(d); plist.clear();
+    int ii;
     while (sp.good())
     {
         for (int i=0; i<d; i++) sp>>point[i];
@@ -187,7 +190,7 @@ int main(int argc, char**argv)
         }
         else
         {
-            perr=nlproj.project(NP, PP, pp, mind);
+            perr=nlproj.project(NP, PP, pp, mind, fsimil);
             for (int i=0; i<d; i++) std::cout<<pp[i]<<" "; std::cout<<perr<<" "<<mind<<"\n";
         }
     }

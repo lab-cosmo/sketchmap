@@ -266,7 +266,7 @@ public:
         for (unsigned long i=0; i<n; ++i) { np[i].resize(d); for (unsigned long h=0; h<d; ++h) np[i][h]=p(i,h); }
     }
     
-    double project(const std::valarray<double>& np, std::valarray<double>& hp, std::valarray<double>& lp, double &md);
+    double project(const std::valarray<double>& np, std::valarray<double>& hp, std::valarray<double>& lp, double &md, bool fsimil=false);
 };
 
 enum NLDRLLEMode { LLE, LLTE, HLLE }; 

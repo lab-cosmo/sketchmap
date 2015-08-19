@@ -557,7 +557,7 @@ void NLDRProjection::set_vars(const std::valarray<double>& rv)
     vv*=1.0/tw; vg*=1.0/tw; //vdX*=1.0/n;
 }
             
-double NLDRProjection::project(const std::valarray<double>& np, std::valarray<double>& hp,  std::valarray<double>& lp, double &md)
+double NLDRProjection::project(const std::valarray<double>& np, std::valarray<double>& hp,  std::valarray<double>& lp, double &md, bool fsimil)
 {
     //Finds closer-by point and optimized cost function starting from there
     std::valarray<double> v1(D), v2(D); 
@@ -570,12 +570,16 @@ double NLDRProjection::project(const std::valarray<double>& np, std::valarray<do
     for (unsigned long i=0; i<n; ++i)
     {
         v1=P.row(i);
-        opts.nopts.ometric->diff(np,v1,v2);
-        vxx.row(i)=v2;
+        //! you can probably remove this
+        //opts.nopts.ometric->diff(np,v1,v2);
+        //vxx.row(i)=v2;
         nd[i].j=i; 
         //! WRONG DISTANCE (in spherical)
-        //nd[i].d=0.0; for (unsigned long k=0; k<D; ++k) nd[i].d+=v2[k]*v2[k]; nd[i].d=sqrt(nd[i].d);
-        nd[i].d=opts.nopts.ometric->dist(np,v1);
+        //nd[i].d=0.0; for (unsigned long k=0; k<D; ++k) nd[i].d+=v2[k]*v2[k]; nd[i].d=sqrt(nd[i].d);        
+        if (fsimil)
+          nd[i].d=np[i];
+        else
+          nd[i].d=opts.nopts.ometric->dist(np,v1);
         opts.tfunH.fdf(nd[i].d,vfd[i],vf1d[i]);
         if (nd[i].d<mind.d || mind.d<0.0)  mind=nd[i];
     }
