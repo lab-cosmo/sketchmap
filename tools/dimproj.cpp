@@ -14,7 +14,7 @@ void banner()
     std::cerr
             << " USAGE: dimproj -D hi-dim -d low-dim -P hd-file -p ld-file [-pi period] [-dot]  \n"
             << "               [-w] [-grid gw,g1,g2 ] [-cgmin st] [-gt temp] [-path lambda]     \n"
-            << "               [-fun-hd s,a,b] [-fun-ld s,a,b] [-h] [-print] [--similarity]      < input      \n"
+            << "           [-fun-hd s,a,b] [-fun-ld s,a,b] [-h] [-print] [-similarity]  < input \n"
             << "                                                                                \n"
             << " computes the projection of the points given in input, given landmark points.   \n"
             << " dimension is set by -D option, and the projection is performed down to the     \n"
