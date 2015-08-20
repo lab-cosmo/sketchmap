@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { font-family: "Trebuchet", Helvetica, Sans }
+#header {
+    background-color:black;
+    color:white;
+    text-align:center;
+    padding:12px;
+}
+#container {
+padding-left:10%; padding-right:10%; width:80%;text-align:center;
+}
+h1 {padding:2px; margin:0px; font-weight: bold; font-size:32px; }
+#mapsec {
+    line-height:30px;
+    text-align:center;
+    height:auto;
+    width:70%;
+    float:left;
+    padding:2px;	      
+}
+#structure {
+    width:27%;
+    height:auto;
+    text-align:center;
+    float:left;
+    padding:-20px;	 	 
+}
+#info {
+    width:2%;
+    height:auto;
+    text-align:center;
+    float:right;
+    padding:2px;	 	 
+}
+#footer {
+    background-color:black;
+    color:white;
+    clear:both;
+    text-align:center;
+   padding:2px;	 	 
+}
+p.properties {
+   font-size:16px;
+   text-align: center; 
+   height:17px;
+   padding: 0px;
+}
+body
+{
+    background-color: white;
+}
+canvas
+{
+    pointer-events: none;       /* make the canvas transparent to the mouse - needed since canvas is position infront of image */
+    position: absolute;
+}
+</style>
+<script type="text/javascript" src="smap-canvas.js"></script>
+
+<title></title>
+<body onload='myInit()' onResize='myResize()' >
+<div id="header">
+<h1>Sketch Map of C60 Cluster</h1>
+</div>
+<div id="container" >
+<div id="mapsec">
+    <canvas id='myCanvas'></canvas>     <!-- gets re-positioned in myInit(); -->
+    <canvas id='lastCanvas'></canvas>
+    <img src='smap-C60.png' width="100%" usemap='#imgmap_css_container_imgmap' class='imgmap_css_container' title='' alt='Sketch Map C60' id='img-imgmap'  />
+</div>
+<div id="structure">
+<center>
+<img src="bg1.png" id="sidebar" width="100%"/><br>
+<p id="en1" class="properties"></p><br>
+<img src="bg2.png" id="sidebar1" width="100%"/> <br>
+<p id="en2" class="properties"></p><br>
+</center>
+</div>
+<map id='imgmap' name='imgmap_css_container_imgmap'>
+<area shape="circ" onclick='myClick(this,"./images/C60_1.png","Energy=0.00 eV");' onmouseover='myHover(this,"./images/C60_1.png","Energy=0.00 eV");' onmouseout='myLeave("./images/C60_1.png");' coords="877.856551,875.774588,12.5"  title="Energy=0.00 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_2.png","Energy=1.57 eV");' onmouseover='myHover(this,"./images/C60_2.png","Energy=1.57 eV");' onmouseout='myLeave("./images/C60_2.png");' coords="888.335363,779.029778,12.5"  title="Energy=1.57 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_3.png","Energy=3.56 eV");' onmouseover='myHover(this,"./images/C60_3.png","Energy=3.56 eV");' onmouseout='myLeave("./images/C60_3.png");' coords="811.570888,801.165915,12.5"  title="Energy=3.56 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_4.png","Energy=5.23 eV");' onmouseover='myHover(this,"./images/C60_4.png","Energy=5.23 eV");' onmouseout='myLeave("./images/C60_4.png");' coords="758.527797,775.301572,12.5"  title="Energy=5.23 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_5.png","Energy=5.40 eV");' onmouseover='myHover(this,"./images/C60_5.png","Energy=5.40 eV");' onmouseout='myLeave("./images/C60_5.png");' coords="799.208955,784.444577,12.5"  title="Energy=5.40 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_6.png","Energy=5.95 eV");' onmouseover='myHover(this,"./images/C60_6.png","Energy=5.95 eV");' onmouseout='myLeave("./images/C60_6.png");' coords="789.617107,787.768197,12.5"  title="Energy=5.95 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_7.png","Energy=6.27 eV");' onmouseover='myHover(this,"./images/C60_7.png","Energy=6.27 eV");' onmouseout='myLeave("./images/C60_7.png");' coords="850.734495,784.467003,12.5"  title="Energy=6.27 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_8.png","Energy=6.32 eV");' onmouseover='myHover(this,"./images/C60_8.png","Energy=6.32 eV");' onmouseout='myLeave("./images/C60_8.png");' coords="833.154633,789.842375,12.5"  title="Energy=6.32 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_9.png","Energy=6.47 eV");' onmouseover='myHover(this,"./images/C60_9.png","Energy=6.47 eV");' onmouseout='myLeave("./images/C60_9.png");' coords="852.422026,769.709981,12.5"  title="Energy=6.47 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_10.png","Energy=6.51 eV");' onmouseover='myHover(this,"./images/C60_10.png","Energy=6.51 eV");' onmouseout='myLeave("./images/C60_10.png");' coords="731.352426,767.433534,12.5"  title="Energy=6.51 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_11.png","Energy=7.94 eV");' onmouseover='myHover(this,"./images/C60_11.png","Energy=7.94 eV");' onmouseout='myLeave("./images/C60_11.png");' coords="849.025924,576.814748,12.5"  title="Energy=7.94 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_12.png","Energy=8.35 eV");' onmouseover='myHover(this,"./images/C60_12.png","Energy=8.35 eV");' onmouseout='myLeave("./images/C60_12.png");' coords="741.813188,803.175037,12.5"  title="Energy=8.35 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_13.png","Energy=8.56 eV");' onmouseover='myHover(this,"./images/C60_13.png","Energy=8.56 eV");' onmouseout='myLeave("./images/C60_13.png");' coords="829.424863,560.238389,12.5"  title="Energy=8.56 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_14.png","Energy=9.58 eV");' onmouseover='myHover(this,"./images/C60_14.png","Energy=9.58 eV");' onmouseout='myLeave("./images/C60_14.png");' coords="716.578718,762.031648,12.5"  title="Energy=9.58 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_15.png","Energy=10.90 eV");' onmouseover='myHover(this,"./images/C60_15.png","Energy=10.90 eV");' onmouseout='myLeave("./images/C60_15.png");' coords="696.931723,743.234249,12.5"  title="Energy=10.90 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_16.png","Energy=13.30 eV");' onmouseover='myHover(this,"./images/C60_16.png","Energy=13.30 eV");' onmouseout='myLeave("./images/C60_16.png");' coords="707.151521,706.569693,12.5"  title="Energy=13.30 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_17.png","Energy=13.30 eV");' onmouseover='myHover(this,"./images/C60_17.png","Energy=13.30 eV");' onmouseout='myLeave("./images/C60_17.png");' coords="698.252199,703.620270,12.5"  title="Energy=13.30 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_18.png","Energy=14.10 eV");' onmouseover='myHover(this,"./images/C60_18.png","Energy=14.10 eV");' onmouseout='myLeave("./images/C60_18.png");' coords="685.597676,695.696929,12.5"  title="Energy=14.10 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_19.png","Energy=16.20 eV");' onmouseover='myHover(this,"./images/C60_19.png","Energy=16.20 eV");' onmouseout='myLeave("./images/C60_19.png");' coords="725.241146,520.307850,12.5"  title="Energy=16.20 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_20.png","Energy=16.20 eV");' onmouseover='myHover(this,"./images/C60_20.png","Energy=16.20 eV");' onmouseout='myLeave("./images/C60_20.png");' coords="722.464952,536.678426,12.5"  title="Energy=16.20 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_21.png","Energy=20.50 eV");' onmouseover='myHover(this,"./images/C60_21.png","Energy=20.50 eV");' onmouseout='myLeave("./images/C60_21.png");' coords="640.575585,726.710902,12.5"  title="Energy=20.50 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_22.png","Energy=20.50 eV");' onmouseover='myHover(this,"./images/C60_22.png","Energy=20.50 eV");' onmouseout='myLeave("./images/C60_22.png");' coords="640.561407,726.619859,12.5"  title="Energy=20.50 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_23.png","Energy=20.50 eV");' onmouseover='myHover(this,"./images/C60_23.png","Energy=20.50 eV");' onmouseout='myLeave("./images/C60_23.png");' coords="636.874635,733.111849,12.5"  title="Energy=20.50 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_24.png","Energy=21.00 eV");' onmouseover='myHover(this,"./images/C60_24.png","Energy=21.00 eV");' onmouseout='myLeave("./images/C60_24.png");' coords="696.703617,647.328880,12.5"  title="Energy=21.00 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_25.png","Energy=21.50 eV");' onmouseover='myHover(this,"./images/C60_25.png","Energy=21.50 eV");' onmouseout='myLeave("./images/C60_25.png");' coords="651.167832,400.639615,12.5"  title="Energy=21.50 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_26.png","Energy=21.80 eV");' onmouseover='myHover(this,"./images/C60_26.png","Energy=21.80 eV");' onmouseout='myLeave("./images/C60_26.png");' coords="641.262537,691.516097,12.5"  title="Energy=21.80 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_27.png","Energy=22.90 eV");' onmouseover='myHover(this,"./images/C60_27.png","Energy=22.90 eV");' onmouseout='myLeave("./images/C60_27.png");' coords="551.837253,777.442954,12.5"  title="Energy=22.90 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_28.png","Energy=23.10 eV");' onmouseover='myHover(this,"./images/C60_28.png","Energy=23.10 eV");' onmouseout='myLeave("./images/C60_28.png");' coords="644.560093,372.414665,12.5"  title="Energy=23.10 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_29.png","Energy=23.30 eV");' onmouseover='myHover(this,"./images/C60_29.png","Energy=23.30 eV");' onmouseout='myLeave("./images/C60_29.png");' coords="638.676905,386.827988,12.5"  title="Energy=23.30 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_30.png","Energy=23.80 eV");' onmouseover='myHover(this,"./images/C60_30.png","Energy=23.80 eV");' onmouseout='myLeave("./images/C60_30.png");' coords="624.412076,365.538366,12.5"  title="Energy=23.80 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_31.png","Energy=23.90 eV");' onmouseover='myHover(this,"./images/C60_31.png","Energy=23.90 eV");' onmouseout='myLeave("./images/C60_31.png");' coords="630.112552,354.860042,12.5"  title="Energy=23.90 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_32.png","Energy=24.00 eV");' onmouseover='myHover(this,"./images/C60_32.png","Energy=24.00 eV");' onmouseout='myLeave("./images/C60_32.png");' coords="630.974235,339.682710,12.5"  title="Energy=24.00 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_33.png","Energy=24.60 eV");' onmouseover='myHover(this,"./images/C60_33.png","Energy=24.60 eV");' onmouseout='myLeave("./images/C60_33.png");' coords="618.081506,349.763194,12.5"  title="Energy=24.60 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_34.png","Energy=25.10 eV");' onmouseover='myHover(this,"./images/C60_34.png","Energy=25.10 eV");' onmouseout='myLeave("./images/C60_34.png");' coords="619.513586,347.343711,12.5"  title="Energy=25.10 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_35.png","Energy=25.10 eV");' onmouseover='myHover(this,"./images/C60_35.png","Energy=25.10 eV");' onmouseout='myLeave("./images/C60_35.png");' coords="620.230807,349.570911,12.5"  title="Energy=25.10 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_36.png","Energy=25.30 eV");' onmouseover='myHover(this,"./images/C60_36.png","Energy=25.30 eV");' onmouseout='myLeave("./images/C60_36.png");' coords="522.680228,600.490240,12.5"  title="Energy=25.30 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_37.png","Energy=25.30 eV");' onmouseover='myHover(this,"./images/C60_37.png","Energy=25.30 eV");' onmouseout='myLeave("./images/C60_37.png");' coords="526.033844,601.607301,12.5"  title="Energy=25.30 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_38.png","Energy=25.40 eV");' onmouseover='myHover(this,"./images/C60_38.png","Energy=25.40 eV");' onmouseout='myLeave("./images/C60_38.png");' coords="504.747185,610.497165,12.5"  title="Energy=25.40 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_39.png","Energy=25.40 eV");' onmouseover='myHover(this,"./images/C60_39.png","Energy=25.40 eV");' onmouseout='myLeave("./images/C60_39.png");' coords="521.690656,616.193036,12.5"  title="Energy=25.40 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_40.png","Energy=25.70 eV");' onmouseover='myHover(this,"./images/C60_40.png","Energy=25.70 eV");' onmouseout='myLeave("./images/C60_40.png");' coords="630.895814,377.887176,12.5"  title="Energy=25.70 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_41.png","Energy=25.70 eV");' onmouseover='myHover(this,"./images/C60_41.png","Energy=25.70 eV");' onmouseout='myLeave("./images/C60_41.png");' coords="633.243630,378.552755,12.5"  title="Energy=25.70 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_42.png","Energy=25.70 eV");' onmouseover='myHover(this,"./images/C60_42.png","Energy=25.70 eV");' onmouseout='myLeave("./images/C60_42.png");' coords="635.428830,377.888746,12.5"  title="Energy=25.70 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_43.png","Energy=25.90 eV");' onmouseover='myHover(this,"./images/C60_43.png","Energy=25.90 eV");' onmouseout='myLeave("./images/C60_43.png");' coords="518.240726,604.398088,12.5"  title="Energy=25.90 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_44.png","Energy=25.90 eV");' onmouseover='myHover(this,"./images/C60_44.png","Energy=25.90 eV");' onmouseout='myLeave("./images/C60_44.png");' coords="615.630587,354.254624,12.5"  title="Energy=25.90 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_45.png","Energy=26.10 eV");' onmouseover='myHover(this,"./images/C60_45.png","Energy=26.10 eV");' onmouseout='myLeave("./images/C60_45.png");' coords="487.248685,601.847618,12.5"  title="Energy=26.10 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_46.png","Energy=26.20 eV");' onmouseover='myHover(this,"./images/C60_46.png","Energy=26.20 eV");' onmouseout='myLeave("./images/C60_46.png");' coords="497.415047,602.500117,12.5"  title="Energy=26.20 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_47.png","Energy=26.20 eV");' onmouseover='myHover(this,"./images/C60_47.png","Energy=26.20 eV");' onmouseout='myLeave("./images/C60_47.png");' coords="498.959168,606.332955,12.5"  title="Energy=26.20 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_48.png","Energy=26.60 eV");' onmouseover='myHover(this,"./images/C60_48.png","Energy=26.60 eV");' onmouseout='myLeave("./images/C60_48.png");' coords="480.410563,605.017842,12.5"  title="Energy=26.60 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_49.png","Energy=27.60 eV");' onmouseover='myHover(this,"./images/C60_49.png","Energy=27.60 eV");' onmouseout='myLeave("./images/C60_49.png");' coords="499.430591,581.827763,12.5"  title="Energy=27.60 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_50.png","Energy=27.80 eV");' onmouseover='myHover(this,"./images/C60_50.png","Energy=27.80 eV");' onmouseout='myLeave("./images/C60_50.png");' coords="614.449275,365.311691,12.5"  title="Energy=27.80 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_51.png","Energy=28.30 eV");' onmouseover='myHover(this,"./images/C60_51.png","Energy=28.30 eV");' onmouseout='myLeave("./images/C60_51.png");' coords="499.868120,316.385139,12.5"  title="Energy=28.30 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_52.png","Energy=28.50 eV");' onmouseover='myHover(this,"./images/C60_52.png","Energy=28.50 eV");' onmouseout='myLeave("./images/C60_52.png");' coords="588.156427,337.488072,12.5"  title="Energy=28.50 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_53.png","Energy=28.90 eV");' onmouseover='myHover(this,"./images/C60_53.png","Energy=28.90 eV");' onmouseout='myLeave("./images/C60_53.png");' coords="500.343406,321.562622,12.5"  title="Energy=28.90 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_54.png","Energy=30.40 eV");' onmouseover='myHover(this,"./images/C60_54.png","Energy=30.40 eV");' onmouseout='myLeave("./images/C60_54.png");' coords="394.066894,501.528452,12.5"  title="Energy=30.40 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_55.png","Energy=30.70 eV");' onmouseover='myHover(this,"./images/C60_55.png","Energy=30.70 eV");' onmouseout='myLeave("./images/C60_55.png");' coords="463.626880,286.213425,12.5"  title="Energy=30.70 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_56.png","Energy=30.70 eV");' onmouseover='myHover(this,"./images/C60_56.png","Energy=30.70 eV");' onmouseout='myLeave("./images/C60_56.png");' coords="472.793303,297.622861,12.5"  title="Energy=30.70 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_57.png","Energy=30.80 eV");' onmouseover='myHover(this,"./images/C60_57.png","Energy=30.80 eV");' onmouseout='myLeave("./images/C60_57.png");' coords="974.343823,237.662767,12.5"  title="Energy=30.80 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_58.png","Energy=30.80 eV");' onmouseover='myHover(this,"./images/C60_58.png","Energy=30.80 eV");' onmouseout='myLeave("./images/C60_58.png");' coords="978.530837,235.988939,12.5"  title="Energy=30.80 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_59.png","Energy=30.80 eV");' onmouseover='myHover(this,"./images/C60_59.png","Energy=30.80 eV");' onmouseout='myLeave("./images/C60_59.png");' coords="974.201137,237.422538,12.5"  title="Energy=30.80 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_60.png","Energy=32.50 eV");' onmouseover='myHover(this,"./images/C60_60.png","Energy=32.50 eV");' onmouseout='myLeave("./images/C60_60.png");' coords="1042.178254,131.371307,12.5"  title="Energy=32.50 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_61.png","Energy=32.50 eV");' onmouseover='myHover(this,"./images/C60_61.png","Energy=32.50 eV");' onmouseout='myLeave("./images/C60_61.png");' coords="1042.349341,131.055940,12.5"  title="Energy=32.50 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_62.png","Energy=33.40 eV");' onmouseover='myHover(this,"./images/C60_62.png","Energy=33.40 eV");' onmouseout='myLeave("./images/C60_62.png");' coords="454.993656,260.738083,12.5"  title="Energy=33.40 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_63.png","Energy=34.00 eV");' onmouseover='myHover(this,"./images/C60_63.png","Energy=34.00 eV");' onmouseout='myLeave("./images/C60_63.png");' coords="1103.027303,56.131695,12.5"  title="Energy=34.00 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_64.png","Energy=34.40 eV");' onmouseover='myHover(this,"./images/C60_64.png","Energy=34.40 eV");' onmouseout='myLeave("./images/C60_64.png");' coords="1140.161067,84.736307,12.5"  title="Energy=34.40 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_65.png","Energy=34.90 eV");' onmouseover='myHover(this,"./images/C60_65.png","Energy=34.90 eV");' onmouseout='myLeave("./images/C60_65.png");' coords="1129.708815,22.653077,12.5"  title="Energy=34.90 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_66.png","Energy=34.90 eV");' onmouseover='myHover(this,"./images/C60_66.png","Energy=34.90 eV");' onmouseout='myLeave("./images/C60_66.png");' coords="1129.307036,22.335042,12.5"  title="Energy=34.90 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_67.png","Energy=34.90 eV");' onmouseover='myHover(this,"./images/C60_67.png","Energy=34.90 eV");' onmouseout='myLeave("./images/C60_67.png");' coords="441.854556,229.314119,12.5"  title="Energy=34.90 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_68.png","Energy=36.30 eV");' onmouseover='myHover(this,"./images/C60_68.png","Energy=36.30 eV");' onmouseout='myLeave("./images/C60_68.png");' coords="438.412941,236.447601,12.5"  title="Energy=36.30 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_69.png","Energy=36.60 eV");' onmouseover='myHover(this,"./images/C60_69.png","Energy=36.60 eV");' onmouseout='myLeave("./images/C60_69.png");' coords="440.610704,242.613589,12.5"  title="Energy=36.60 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_70.png","Energy=40.60 eV");' onmouseover='myHover(this,"./images/C60_70.png","Energy=40.60 eV");' onmouseout='myLeave("./images/C60_70.png");' coords="606.134161,84.140936,12.5"  title="Energy=40.60 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_71.png","Energy=41.30 eV");' onmouseover='myHover(this,"./images/C60_71.png","Energy=41.30 eV");' onmouseout='myLeave("./images/C60_71.png");' coords="615.471574,81.778704,12.5"  title="Energy=41.30 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_72.png","Energy=42.30 eV");' onmouseover='myHover(this,"./images/C60_72.png","Energy=42.30 eV");' onmouseout='myLeave("./images/C60_72.png");' coords="613.105767,102.827284,12.5"  title="Energy=42.30 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_73.png","Energy=42.70 eV");' onmouseover='myHover(this,"./images/C60_73.png","Energy=42.70 eV");' onmouseout='myLeave("./images/C60_73.png");' coords="622.811141,77.247380,12.5"  title="Energy=42.70 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_74.png","Energy=42.80 eV");' onmouseover='myHover(this,"./images/C60_74.png","Energy=42.80 eV");' onmouseout='myLeave("./images/C60_74.png");' coords="620.401568,117.282424,12.5"  title="Energy=42.80 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_75.png","Energy=43.80 eV");' onmouseover='myHover(this,"./images/C60_75.png","Energy=43.80 eV");' onmouseout='myLeave("./images/C60_75.png");' coords="227.292314,438.885766,12.5"  title="Energy=43.80 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_76.png","Energy=45.10 eV");' onmouseover='myHover(this,"./images/C60_76.png","Energy=45.10 eV");' onmouseout='myLeave("./images/C60_76.png");' coords="642.485120,61.956415,12.5"  title="Energy=45.10 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_77.png","Energy=46.20 eV");' onmouseover='myHover(this,"./images/C60_77.png","Energy=46.20 eV");' onmouseout='myLeave("./images/C60_77.png");' coords="604.143778,74.075398,12.5"  title="Energy=46.20 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_78.png","Energy=46.30 eV");' onmouseover='myHover(this,"./images/C60_78.png","Energy=46.30 eV");' onmouseout='myLeave("./images/C60_78.png");' coords="30.595381,699.909833,12.5"  title="Energy=46.30 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_79.png","Energy=46.30 eV");' onmouseover='myHover(this,"./images/C60_79.png","Energy=46.30 eV");' onmouseout='myLeave("./images/C60_79.png");' coords="421.151839,57.342025,12.5"  title="Energy=46.30 eV" class="imgmap-area"/>
+<area shape="circ" onclick='myClick(this,"./images/C60_80.png","Energy=48.20 eV");' onmouseover='myHover(this,"./images/C60_80.png","Energy=48.20 eV");' onmouseout='myLeave("./images/C60_80.png");' coords="350.561254,37.998638,12.5"  title="Energy=48.20 eV" class="imgmap-area"/>
+</map>
+</body>
+</html>
+
+
+
+
