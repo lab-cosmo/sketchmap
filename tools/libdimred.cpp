@@ -1268,7 +1268,9 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
                          
               tw+=pweights(i,j);
               pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)))  *pweights(i,j);
-              gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/ld(i,j)  *pweights(i,j);
+              double dld=ld(i,j);
+              if (dld<1e-100) dld=1e-100;   // avoids NAN for overlapping points...
+              gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/dld  *pweights(i,j);
 
               for (unsigned long h=0; h<d; h++)
               {
@@ -1298,9 +1300,12 @@ void NLDRITERChi::set_vars(const std::valarray<double>& rv)
               for (unsigned long j=0; j<i; j++) 
           {           
               tfun.fdf(ld(i,j),fld,dfld);
-                         
+                        
+              double dld=ld(i,j);
+              if (dld<1e-100) dld=1e-100;   // avoids NAN for overlapping points...
+              
               pval+=((fhd(i,j)-fld)*(fhd(i,j)-fld)*(1.0-imix)+imix*(hd(i,j)-ld(i,j))*(hd(i,j)-ld(i,j)));
-              gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/ld(i,j);
+              gij=((fhd(i,j)-fld)*dfld*(1.0-imix)+imix*(hd(i,j)-ld(i,j)))/dld;
 
               for (unsigned long h=0; h<d; h++)
               {
