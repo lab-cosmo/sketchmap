@@ -14,7 +14,7 @@ read -p "Please enter the dimensionality of input data " HD
 LD=2      #hardcoded, dimred only works with d=2 right now.
 
 read -p "Are we reading the similarity matrix? " SIM
-if [ $SIM = "y" ]; then SIM=" -similarity "; else SIM=""; fi
+if [ $SIM = "y" ]; then SIM=" -similarity "; else SIM="";
 
 read -p "Are points weighted [y/n]? " DOW
 if [ $DOW = "y" ]; then DOW=" -w "; else DOW=""; fi
@@ -26,7 +26,7 @@ if [ $DOT = "y" ]; then DOT=" -dot "; else DOT=""; fi
 PI=0
 read -p "Please enter the periodicity of input data [0 if non-periodic] " PI
 if [ -z $PI -o $PI = "0" ]; then PI=""; else  PI=" -pi $PI"; fi
-
+fi
 read -p "Please enter the input data file name " FILEHD
 read -p "Please enter the output data prefix " FILELD
 
