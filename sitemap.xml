@@ -14,6 +14,11 @@
   <changefreq>weekly</changefreq>
   <priority>0.5000</priority>
  </url>
+  <url>
+  <loc>http://epfl-cosmo.github.io/sketchmap/index.htm?page=plumed_tuts</loc>
+  <changefreq>weekly</changefreq>
+  <priority>0.5000</priority>
+ </url>
  <url>
   <loc>http://epfl-cosmo.github.io/sketchmap/index.htm?page=manu</loc>
   <changefreq>weekly</changefreq>

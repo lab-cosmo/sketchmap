@@ -47,12 +47,46 @@ Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] 6 1 2 <br/>
       </p>
    </div>
    </div>
+
    <script type="text/javascript">safe_toggle('tut-script','tut-script-head');</script>
+   <p>
+      The sketchmap can also be run under PLUMED framework. The following code explains the functionality available in the current implementation of the sketchmap algorithm in PLUMED.
+   </p>
+   <div class="pcbox">
+   <div class="head" id="tut-script+plumed-head" onclick="safe_toggle('tut-script+plumed','tut-script+plumed-head');">
+      running <span class="code">Sketchmap</span> in PLUMED  [+-]
+   </div>
+   <div class="body" id="tut-script+plumed" style="display: block;">
+      <p>
+        Following code uses all dataset to run the sketch-map optimization which is decsribed in detail below.
+      </p>
+      <div class="code" >
+      d: READ FILE=input.in VALUES=c.*<br/>
+      SKETCHMAP ...<br/>
+      ARG=d.*<br/>
+      NLOW_DIM=2<br/>
+      USE_ALL_DATA<br/>
+      HIGH_DIM_FUNCTION={SMAP R_0=1 A=3 B=2}<br/>
+      LOW_DIM_FUNCTION={SMAP R_0=1 A=1 B=2}<br/>
+      OUTPUT_FILE=smap-out<br/>
+      EMBEDDING_OFILE=smap-embed<br/>
+      ... SKETCHMAP<br/>
+
+      </div>
+      The parameters required and the functionality is detailed below:
+      <ul>
+         <li>The <span class="code">NLOW_DIM</span> allows user to specify the dimension to which the projection is done </li>
+         <li>The <span class="code">USE_ALL_DATA</span> allows user to perform sketchmap optimization on the complete dataset. This can be replaced with Landmark Selection to do optimization on only the selected landmark points. </li>
+         <li>The <span class="code">SMAP</span> is specified to use SMACOF algorithm for sketch-map optimization. </li>
+         <li>The <span class="code">R_0</span>, <span class="code">A</span> and <span class="code">B</span>  specify the sigma value and the parameters of sigmoid function respectively.</li>
+      </ul>
+
+   </div>
+   </div>
+   <script type="text/javascript">safe_toggle('tut-script+plumed','tut-script+plumed-head');</script>
    
    <br/>
-   <br/>
-   <br/>
-   <br/>
+
 
    <h2> A detailed description of the process </h2>
    
@@ -110,8 +144,9 @@ Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] 6 1 2 <br/>
       </p>
    </div>
    </div>
-   <script type="text/javascript">safe_toggle('tut-mds','tut-mds-head');</script>    
-   
+   <script type="text/javascript">safe_toggle('tut-mds','tut-mds-head');</script>
+
+  
    <img src="pages/tuts/ala_gmdsplot.png" alt="Linear MDS embedding of 12-ala data, colored based on one of the dihedrals" class="floatleft"/>
    <h3> Iterative metric MDS and pointwise-global optimization </h3>
       <p>      

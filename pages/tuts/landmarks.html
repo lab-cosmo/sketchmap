@@ -22,7 +22,6 @@
      space, <span class="code">dimlandmark</span> also allows to assign weights proportional to the density
      of samples surrounding each sample.
   </p>
-  
    <div class="cbox">
    <div class="head" id="tut-lmark-head" onclick="safe_toggle('tut-lmark','tut-lmark-head');">
       running <span class="code">dimlandmark</span> [+-]
@@ -45,6 +44,100 @@
       </p>
    </div>
    </div>
-  <script type="text/javascript">safe_toggle('tut-lmark','tut-lmark-head');</script>
+   <script type="text/javascript">safe_toggle('tut-lmark','tut-lmark-head');</script>
+  <p>
+     Both of these strategies can also be run in PLUMED
+  </p>
+    
+
+     <div class="pcbox">
+     <div class="head" id="tut-random+fps-head" onclick="safe_toggle('tut-random+fps','tut-random+fps-head');">
+      using PLUMED for Random Selection and FPS [+-]
+     </div>
+      <div class="body" id="tut-random+fps" style="display: block;">
+      <p>
+      The <span class="code">SelectRandomFrames</span> allows user to select a small, representative subset of the high-dimensional data randomly, so that dimensionality reduction can be performed more effectively. <span class="code">USE_ALL_DATA</span> can be replaced with <span class="code">RUN=ii</span> (a number) to use datapoints only after ii steps while selecting randomly from the data.
+      </p>
+      <div class="code" >
+         d: READ FILE=highd-dataset.in VALUES=c.*<br>
+         OUTPUT_LANDMARKS ... <br>
+          ARG=d.*<br>
+          USE_ALL_DATA<br>
+          METRIC=EUCLIDEAN<br>
+          LANDMARKS={RANDOM N=300 SEED=-3241 }<br>
+          LIST_FILE=landmark-random.out<br>
+          ... OUTPUT_LANDMARKS<br>
+      </div>
+      <p>
+      <span class="code">METRIC</span>  options specify the distance function employed,  <span class="code">RANDOM</span> keyword is used to specify the Random Sampling method to be employed and  <span class="code">N</span>  is used for the number of landmarks to be selected. <span class="code">LIST_FILE</span> is used to specify the output file where the landmarks are generated. <span class="code">SEED</span> specifies the seed for the random number generator. It should be given different values for different runs. You can download the example file, the plumed input file and the script to prepare the input file <a href='data/sketchmap-0.2.tar.bz2'> as a tarball</a>.
+      </p>
+
+      <p>
+      The <span class="code">FarthestPointSampling</span> allows user to select a small, representative subset of the high-dimensional data using Farthest Point Sampling technique. All the parameters remain same as defined in Random Sampling method except the key word <span class="code">FPS</span> is used instead of <span class="code">RANDOM</span>
+      </p>
+      <div class="code" >
+         d: READ FILE=highd-dataset.in VALUES=c.*<br>
+         OUTPUT_LANDMARKS ... <br>
+          ARG=d.*<br>
+          USE_ALL_DATA<br>
+          METRIC=EUCLIDEAN<br>
+          LANDMARKS={FPS N=300 SEED=1 }<br>
+          LIST_FILE=landmark-fps.out<br>
+          ... OUTPUT_LANDMARKS<br>
+      </div>
+
+      </div> 
+      </div>
+      <script type="text/javascript">safe_toggle('tut-random+fps','tut-random+fps-head');</script> 
+  <p>
+     Apart from the above mentioned strategies, there are some more strategies which can be used to select the landmarks when running the sketchmap algorithm with PLUMED.
+  </p>
+  <ul>
+  <li> Select points using stride - <i>the landmarks are selected after skipping uniform number of frames between two selections. The algorithm calculates the uniform stride length with the number of required landmarks and the total data.</i> </li>
+  <li> Select points using a staged sampling from the trajectory - <i>the landmarks are selected in two stages. First a relatively larger number of intermediate landmarks are selected, using farthest point sampling. After this these landmarks are used to calculate voronoi weights and random sampling is done based on the weights in each voronoi region and final selection is made.</i></li>
+  </ul> 
+  
+  
+
+     <div class="pcbox">
+     <div class="head" id="tut-stride-head" onclick="safe_toggle('tut-stride','tut-stride-head');">
+      using PLUMED for Selection with Stride and Staged Sampling [+-]
+     </div>
+      <div class="body" id="tut-stride" style="display: block;">
+      <p>
+      The Stride Sampling allows user to select a representative subset of the high-dimensional data using strides of predefined constant step length. 
+      </p>
+      <div class="code" >
+         d: READ FILE=highd-dataset.in VALUES=c.*<br>
+         OUTPUT_LANDMARKS ... <br>
+          ARG=d.*<br>
+          USE_ALL_DATA<br>
+          METRIC=EUCLIDEAN<br>
+          LANDMARKS={STRIDE N=300 }<br>
+          LIST_FILE=landmark-stride.out<br>
+          ... OUTPUT_LANDMARKS<br>
+      </div>
+      <p>
+        <!-- You can download the example file, the plumed input file and the script to prepare the input file <a href='data/sketchmap-0.2.tar.bz2'> as a tarball</a>. -->
+      </p>  
+      <p>
+      The <span class="code">StagedSampling</span> allows user to select a representative subset of the high-dimensional data using Staged Sampling technique. All the parameters remain same as defined in Random Sampling method except the key word <span class="code">STAGED</span> is used and another parameter <span class="code">GAMMA</span> is specified which determines TODO.
+      </p>
+      <div class="code" >
+         d: READ FILE=highd-dataset.in VALUES=c.*<br>
+         OUTPUT_LANDMARKS ... <br>
+          ARG=d.*<br>
+          USE_ALL_DATA<br>
+          METRIC=EUCLIDEAN<br>
+          LANDMARKS={STAGED N=300 SEED=1 GAMMA=0.5}<br>
+          LIST_FILE=landmark-staged.out<br>
+          ... OUTPUT_LANDMARKS<br>
+      </div>
+      <p>
+        <!-- You can download the example file, the plumed input file and the script to prepare the input file <a href='data/sketchmap-0.2.tar.bz2'> as a tarball</a>. -->
+      </p>                  
+     </div>
+     </div>
+     <script type="text/javascript">safe_toggle('tut-stride','tut-stride-head');</script>
   
 </div>
