@@ -358,7 +358,8 @@ int main(int argc, char**argv)
         else 
         {
             std::cout << " ################### ITERATIVE"<<(doglobal?" gMDS REPORT #############\n":" MDS REPORT ##############\n");
-            std::cout << " # Computed with function: "<<fmds<<" with pars ?????\n";
+            std::cout << " # Computed with function: "<<fmds<<" with pars "<<fdhd<< "  "<<fdld<<"\n";
+        
             std::cout << " # Conjugate gradient steps: "<<presteps+gsteps<<"\n";
             std::cout << " # Error in fitting LD points: "<<iterreport.ld_error<<"\n";
             std::cout << " # y1 .. yd "<<(fveryverb?" ld_error ":"")<<"\n";
