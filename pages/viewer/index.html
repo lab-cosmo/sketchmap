@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#header {
+    background-color:#B80000  ;
+    color:white;
+    text-align:center;
+    padding:5px;
+}
+#guide {
+    line-height:30px;
+    background-color:#eeeeee;
+    height:650px;
+    width:400px;
+    float:left;
+    padding:15px;	      
+}
+#section {
+    width:800px;
+    float:left;
+    padding:10px;
+    text-align:center;	 	 
+}
+#footer {
+    background-color:#B80000 ;
+    color:white;
+    clear:both;
+    text-align:center;
+   padding:5px;	 	 
+}
+
+h2 {
+    text-align: center;
+    color: #B80000 ;
+}
+</style>
+<script type="text/javascript">
+        function codeAddress() {
+          if (navigator.userAgent.indexOf("Firefox") == -1 && navigator.userAgent.indexOf("Safari") ==-1 ) {
+            alert('Only Firefox and Safari browsers are Supported');
+           }
+        }
+        window.onload = codeAddress;
+        </script>
+</head>
+<body>
+<div id="header">
+<h1>Interactive Sketch-map Browser</h1>
+</div>
+
+<div id="section">
+<h2>C60 Clusters</h2>
+<a href="ISV/C60-COLVAR-avg-0.02-1-4.html" target="_blank">
+<img src="thumb/c60-avg.png" alt="C60 Sketch-map with Average Kernel" style="height:250px;border:0;">
+</a>
+<a href="ISV/C60-COLVAR-match-0.2-1-4.html" target="_blank">
+<img src="thumb/c60-match.png" alt="C60 Sketch-map with Best Match Kernel" style="height:250px;border:0;">
+</a>
+<a href="ISV/C60-COLVAR-rmatch0.1-0.1-1-4.html" target="_blank">
+<img src="thumb/c60-regmatch.png" alt="C60 Sketch-map with Regularized Best Match Kernel" style="height:250px;border:0;">
+</a>
+<br>
+<h2> Silicon Phases </h2>
+<a href="ISV/Silicon.html" target="_blank">
+<img src="thumb/Silicon.png" alt=" Sketch-map for Silicon Phases " style="height:450px;border:0;">
+</a>
+<br>
+<h2> Gas Phase Arginine Dipeptide Molecules </h2>
+<a href="ISV/Arg.dipep.bare-COLVAR-0.25-1-4_1-4.html" target="_blank">
+<img src="thumb/Arg-dipep-bare.png" alt=" Sketch-map " style="height:350px;border:0;">
+</a>
+<a href="ISV/Arg.dipep.Ca-COLVAR-0.25-1-4_1-4.html" target="_blank">
+<img src="thumb/Arg-dipep-Ca.png" alt=" Sketch-map " style="height:350px;border:0;">
+</a>
+<br>
+
+<h2> Qm7b Database </h2>
+<a href="ISV/qm7b-all-diff-COLVAR-0.5-2-6.html" target="_blank">
+<img src="thumb/qm7b-all-diff.png" alt=" Sketch-map " style="height:250px;border:0;">
+</a>
+<a href="ISV/qm7b-all-same-COLVAR-0.3-2-6.html" target="_blank">
+<img src="thumb/qm7b-all-same.png" alt=" Sketch-map " style="height:250px;border:0;">
+</a>
+<a href="ISV/qm7b-edelta-1.0-COLVAR-0.4-2-6.html" target="_blank">
+<img src="thumb/qm7b-edelta.png" alt=" Sketch-map " style="height:250px;border:0;">
+</a>
+<br>
+
+</div>
+<div id="guide">
+<h2>Browsing guide</h2>
+<p> Please use firefox or Safari browser for full functionality. Other browsers like Google Chrome do not allow running local javascripts. This page give access to interactive sketch-maps for the four systems presented in "Comparing molecules and solids across structural and alchemical space" by S. De, A. Bartok, G. Csanyi and M. Ceriotti. The sketch-maps are colored according to their energy - please refer to the original manuscript for details. 
+The interactive sketch-map viewer can be panned and zoomed with the help of a mouse. Moving the pointer on any point displays a small image preview along with the energy value. Clicking on a point will show the structure in an interactive 3d jmol viewer. The following image demonstatres the usage overview.</p> 
+<img src="thumb/guide.gif" style="width:400px;">
+</div>
+<div id="footer">
+"Comparing molecules and solids across structural and alchemical space" &copy; 2015. <a href="http://cosmo.epfl.ch" target="_blank"> http://cosmo.epfl.ch </a>
+</div>
+
+</body>
+</html>
+
