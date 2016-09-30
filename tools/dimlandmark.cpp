@@ -381,14 +381,29 @@ int main(int argc, char**argv)
     
     std::cout<<std::scientific; std::cout.precision(10); 
     std::cout<<"# "<<n<<" landmark points selected out of "<<N<<" and chosen by "<<smode<<"\n";
-    std::cout<<"# Max distance detected: "<<maxd<<"\n";
+    std::cout<<"# Max distance detected: "<<maxd<<"\n";    
     for (unsigned long i=0; i<n; ++i)
     {
         if (findex) std::cout<<isel[i]<<" ";
-        for (unsigned long j=0; j<D; ++j) std::cout<<LP(i,j)<<" ";
+        if (fsimil)
+        {
+            for (unsigned long j=0; j<n; ++j) std::cout<<LP(i,isel[j])<<" ";            
+        }
+        else
+        {
+            for (unsigned long j=0; j<D; ++j) std::cout<<LP(i,j)<<" ";
+        }
         if (findex && finw) std::cout<<wlist[isel[i]]<<"  ";
         if (fweight) std::cout<<weights[i];
         
         std::cout<<"\n";
+    }
+    if (fsimil)
+    {  //also prints out of sample data        
+        for (unsigned long i=0; i<D; ++i)
+        {
+            for (unsigned long j=0; j<n; ++j) std::cout<<LP(j,i)<<" ";
+            std::cout<<"\n";
+        }           
     }
 }
