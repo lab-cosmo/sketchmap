@@ -100,8 +100,8 @@ public:
     virtual bool operator<< (std::istream& istr) {return false;};
 
     //using stringstream we get easily the ability to read from strings as well as from streams
-    virtual bool operator>> (std::string& str) const { std::ostringstream os; bool rval=(os << (*this)); str=os.str(); return rval; }
-    virtual bool operator<< (const std::string& str) { std::istringstream is(str); return((*this) << is); }
+    virtual bool operator>> (std::string& str) const { std::ostringstream os; bool rval=(bool) (os << (*this)); str=os.str(); return rval; }
+    virtual bool operator<< (const std::string& str) { std::istringstream is(str); return (bool) ((*this) << is); }
 
     IFBase(std::string nname) : name(nname), flags(0) {}
     virtual ~IFBase() {}
