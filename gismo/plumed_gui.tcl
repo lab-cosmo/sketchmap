@@ -86,7 +86,7 @@ proc plumedVis::create_gui {args} {
   global env
 
   # Check plumedir is defined (if this is not the case we should crash
-  if { $env(plumedir) == "" } { tk_messageBox -icon error -type ok -title Message -message "I have not found plumedir in env, update .bashrc" }
+  # if { $env(plumedir) == "" } { tk_messageBox -icon error -type ok -title Message -message "I have not found plumedir in env, update .bashrc" }
 
   # If already initialized, destroy it
   if [winfo exists .bplot] {
@@ -124,7 +124,7 @@ proc plumedVis::create_gui {args} {
   pack [ createControls $w.top.pmenus ] -in $w.top -padx 1 -fill x -side top
   pack $w.top -fill both -expand true                      ; # Complete the packing
   updateMenus                                              ; # Sets up all the menus and sets what's plotted to none
-  updateFesMenu                                            ; # Set up the fes menu
+  # updateFesMenu                                            ; # Set up the fes menu
 
   # This should bind every colvar point to go to the frame
   $w.fr.canv bind colvar: <Button-1> [namespace code { cv_traj::Goto %W -datatag colvar } ]
@@ -141,7 +141,7 @@ proc plumedVis::create_gui {args} {
   trace add variable plumedVis::ycoord write [namespace code plumedVis::updateColvars ]
   trace add variable plumedVis::scoord write [namespace code { plumedVis::updateColvars -keepzoom 1 } ]
   trace add variable plumedVis::ccoord write [namespace code { plumedVis::updateColvars -keepzoom 1 } ]
-  trace add variable plumedVis::fcoord write [namespace code plumedVis::updateFes]
+  # trace add variable plumedVis::fcoord write [namespace code plumedVis::updateFes]
   trace add variable plumedVis::showfesdiff write [namespace code plumedVis::drawGraph]
   trace add variable plumedVis::fesdisplay write [namespace code plumedVis::drawGraph]
   trace add variable plumedVis::hideColvars write [namespace code plumedVis::updateColvars ]
@@ -149,7 +149,7 @@ proc plumedVis::create_gui {args} {
   # This ensures colvars are read when they are calculated
   trace add variable ::driverInterface::status(plumedVis) write [namespace code plumedVis::readColvar]
   # This ensures fes is plotted after sum hills
-  trace add execution ::fesTools::sumHills leave [namespace code plumedVis::updateFesMenu] 
+  # trace add execution ::fesTools::sumHills leave [namespace code plumedVis::updateFesMenu] 
   # This kills the dimensionality reduction window when it needs to be killed
   trace add variable ::cvlist::dimredFinished write {destroy .dimred}
   # This kills the osample window when it needs to be killed
@@ -177,14 +177,14 @@ proc plumedVis::destroy {args} {
    trace remove variable plumedVis::scoord write [namespace code { plumedVis::updateColvars -keepzoom 1 } ]
    trace remove variable plumedVis::ccoord write [namespace code { plumedVis::updateColvars -keepzoom 1} ]
    trace remove variable plumedVis::hideColvars write [namespace code plumedVis::updateColvars ]
-   trace remove variable plumedVis::fcoord write [namespace code plumedVis::updateFes]
+   # trace remove variable plumedVis::fcoord write [namespace code plumedVis::updateFes]
    trace remove variable plumedVis::showfesdiff write [namespace code plumedVis::drawGraph] 
    trace remove variable plumedVis::fesdisplay write [namespace code plumedVis::drawGraph]
    trace remove variable vmd_frame write [namespace code updateHighlight]
    trace remove variable ::driverInterface::status(plumedVis) write [namespace code plumedVis::readColvar]
    trace remove variable ::gtPlot::doneLasso write [namespace code { cv_traj::addSelection $w.fr.canv -datatag colvar} ]
    trace remove variable ::gtPlot::doneLasso write [namespace code { fesTools::integrate $w.fr.canv -datatag free_energy} ]
-   trace remove execution ::fesTools::sumHills leave [namespace code plumedVis::updateFesMenu] 
+   # trace remove execution ::fesTools::sumHills leave [namespace code plumedVis::updateFesMenu] 
    trace remove variable ::cvlist::dimredFinished write {destroy .dimred}
    trace remove variable ::cvlist::osampleFinished write {destroy .osample}
    trace remove variable ::cvlist::projectionFileFinished write {destroy .pfilew}
@@ -431,7 +431,7 @@ proc plumedVis::updateColvars {args} {
    variable ::gtPlot::bounds
 
    # Update the fes menu
-   ::fesTools::updateMenu $w.top.pmenus.faxis.m -xcoord $xcoord -ycoord $ycoord -variable plumedVis::fcoord   
+   # ::fesTools::updateMenu $w.top.pmenus.faxis.m -xcoord $xcoord -ycoord $ycoord -variable plumedVis::fcoord   
 
    # stores the canvas boundaries
    set keepzoom no   
@@ -502,13 +502,13 @@ proc plumedVis::updateColvars {args} {
       }
 }
 
-proc plumedVis::updateFesMenu {args} {
-   variable xcoord
-   variable ycoord
-   variable fcoord
-   variable w
-   ::fesTools::updateMenu $w.top.pmenus.faxis.m -xcoord $xcoord -ycoord $ycoord -variable plumedVis::fcoord
-}
+# proc plumedVis::updateFesMenu {args} {
+#    variable xcoord
+#    variable ycoord
+#    variable fcoord
+#    variable w
+#    ::fesTools::updateMenu $w.top.pmenus.faxis.m -xcoord $xcoord -ycoord $ycoord -variable plumedVis::fcoord
+# }
 
 proc plumedVis::storeSelection {args} {
    variable w
@@ -667,29 +667,29 @@ proc plumedVis::createMenubar {bar} {
   pack $bar.file -side left
   menu $bar.file.menu -tearoff no
   $bar.file.menu add command -label "Load colvars" -command [namespace code {plumedVis::browse "readcolvars" "Please select the COLVAR file to read in"} ]
-  $bar.file.menu add command -label "Load fes" -command [namespace code {plumedVis::browse "readfes" "Please select the 2d FES to read in"} ]
-  $bar.file.menu add command -label "Load onions" -command [namespace code {plumedVis::browse "readonions" "Select the ONIONS file from a recon metad simuiation"} ]
+  # $bar.file.menu add command -label "Load fes" -command [namespace code {plumedVis::browse "readfes" "Please select the 2d FES to read in"} ]
+  # $bar.file.menu add command -label "Load onions" -command [namespace code {plumedVis::browse "readonions" "Select the ONIONS file from a recon metad simuiation"} ]
   $bar.file.menu add command -label "Print graph" -command [namespace code plumedVis::printCanvas]    
   $bar.file.menu add command -label "Save projection file" -command [namespace code plumedVis::openProjectionFileWindow] 
   $bar.file.menu add command -label "Reset molecule" -command [namespace code plumedVis::reset]   
 
   # Calculate menu
-  menubutton $bar.calc -text "Calculate   " -underline 0 -menu $bar.calc.menu
-  $bar.calc config -width 10
-  pack $bar.calc -side left
-  menu $bar.calc.menu -tearoff no
-  $bar.calc.menu add command -label "Calculate colvars" -command [namespace code {plumedVis::browse "calccolvars" "Please select a plumed input file"} ]
-  $bar.calc.menu add command -label "Calculate torsional angles" -command [namespace code {plumedVis::getColvars "torsions"} ] 
-  $bar.calc.menu add command -label "Calculate contact map" -command [namespace code {plumedVis::getColvars "drmsd"} ]
-  $bar.calc.menu add command -label "Calculate discretized rdf" -command [namespace code {plumedVis::getColvars "rdf"} ]
-  $bar.calc.menu add command -label "Calculate discretized adf" -command [namespace code {plumedVis::getColvars "adf"} ]
-  $bar.calc.menu add command -label "Save selection" -command [namespace code plumedVis::storeSelection]
-  $bar.calc.menu add command -label "Extract landmark points" -command [namespace code plumedVis::initfps]
-  $bar.calc.menu add command -label "Dimensionality reduction" -command [namespace code plumedVis::initdimred]
-  $bar.calc.menu add command -label "Out of sample embedding" -command [namespace code plumedVis::initosample]
-  $bar.calc.menu add command -label "Sum hills" -command [namespace code {plumedVis::browse "sumhills" "Please select a HILLS file"} ]
-  $bar.calc.menu add command -label "Convergence of selected free energy" -command [namespace code plumedVis::drawConvergencePlot]
-  $bar.calc.menu add command -label "Find reconnaissance basins" -command [namespace code {plumedVis::browse "findbasins" "Please select a BASINS file"} ]
+  # menubutton $bar.calc -text "Calculate   " -underline 0 -menu $bar.calc.menu
+  # $bar.calc config -width 10
+  # pack $bar.calc -side left
+  # menu $bar.calc.menu -tearoff no
+  # $bar.calc.menu add command -label "Calculate colvars" -command [namespace code {plumedVis::browse "calccolvars" "Please select a plumed input file"} ]
+  # $bar.calc.menu add command -label "Calculate torsional angles" -command [namespace code {plumedVis::getColvars "torsions"} ] 
+  # $bar.calc.menu add command -label "Calculate contact map" -command [namespace code {plumedVis::getColvars "drmsd"} ]
+  # $bar.calc.menu add command -label "Calculate discretized rdf" -command [namespace code {plumedVis::getColvars "rdf"} ]
+  # $bar.calc.menu add command -label "Calculate discretized adf" -command [namespace code {plumedVis::getColvars "adf"} ]
+  # $bar.calc.menu add command -label "Save selection" -command [namespace code plumedVis::storeSelection]
+  # $bar.calc.menu add command -label "Extract landmark points" -command [namespace code plumedVis::initfps]
+  # $bar.calc.menu add command -label "Dimensionality reduction" -command [namespace code plumedVis::initdimred]
+  # $bar.calc.menu add command -label "Out of sample embedding" -command [namespace code plumedVis::initosample]
+  # $bar.calc.menu add command -label "Sum hills" -command [namespace code {plumedVis::browse "sumhills" "Please select a HILLS file"} ]
+  # $bar.calc.menu add command -label "Convergence of selected free energy" -command [namespace code plumedVis::drawConvergencePlot]
+  # $bar.calc.menu add command -label "Find reconnaissance basins" -command [namespace code {plumedVis::browse "findbasins" "Please select a BASINS file"} ]
 
   # Appearance menu
   menubutton $bar.look -text "Appearance   " -underline 0 -menu $bar.look.menu
@@ -698,7 +698,7 @@ proc plumedVis::createMenubar {bar} {
   menu $bar.look.menu -tearoff no
   $bar.look.menu add command -label "Axis appearance" -command [namespace code plumedVis::openAxisLook]
   $bar.look.menu add command -label "Colvar appearance" -command [namespace code plumedVis::openCVlook]
-  $bar.look.menu add command -label "Fes appearance" -command [namespace code plumedVis::openfeslook]
+  # $bar.look.menu add command -label "Fes appearance" -command [namespace code plumedVis::openfeslook]
   $bar.look.menu add command -label "Automatic axis" -command [namespace code plumedVis::updateColvars]
 
   # Help menu
@@ -706,7 +706,7 @@ proc plumedVis::createMenubar {bar} {
   $bar.help config -width 5
   pack $bar.help -side right
   menu $bar.help.menu -tearoff no
-  $bar.help.menu add command -label "G.I.S.M.O. Help..." -command "vmd_open_url http://sketchmap.berlios.de"
+  $bar.help.menu add command -label "G.I.S.M.O. Help..." -command "vmd_open_url http://epfl-cosmo.github.io/sketchmap/index.html?page=gismo"
 
   return $bar
 }
@@ -719,7 +719,7 @@ proc plumedVis::createControls {w} {
   axisMenu $w.saxis "size" plumedVis::scoord 5 
   axisMenu $w.caxis "color" plumedVis::ccoord 5
   button $w.allcvs -text "all cvs" -relief raised -command plumedVis::plotAllCVs
-  axisMenu $w.faxis "fes data" plumedVis::fcoord 18 
+  # axisMenu $w.faxis "fes data" plumedVis::fcoord 18 
 
   # This creates show basins
   frame $w.bas
@@ -729,15 +729,15 @@ proc plumedVis::createControls {w} {
   grid $w.bas.box -row 1 -column 2
 
   # This bit creates the fes frame spinbox
-  frame $w.fram
-  label $w.fram.slab -text "fes frame" -anchor e
-  ::fesTools::createSpinbox $w.fram.spinb -textvariable plumedVis::fesdisplay
-  label $w.fram.ldiff -text "show \n difference" -anchor e
-  checkbutton $w.fram.diff -variable plumedVis::showfesdiff
-  grid $w.fram.slab -row 1 -column 1
-  grid $w.fram.spinb -row 1 -column 2
-  grid $w.fram.ldiff -row 1 -column 3
-  grid $w.fram.diff -row 1 -column 4
+  # frame $w.fram
+  # label $w.fram.slab -text "fes frame" -anchor e
+  # ::fesTools::createSpinbox $w.fram.spinb -textvariable plumedVis::fesdisplay
+  # label $w.fram.ldiff -text "show \n difference" -anchor e
+  # checkbutton $w.fram.diff -variable plumedVis::showfesdiff
+  # grid $w.fram.slab -row 1 -column 1
+  # grid $w.fram.spinb -row 1 -column 2
+  # grid $w.fram.ldiff -row 1 -column 3
+  # grid $w.fram.diff -row 1 -column 4
 
   # Put all the controls into the frame now 
   grid $w.xaxis  -row 1 -column 1
@@ -746,8 +746,8 @@ proc plumedVis::createControls {w} {
   grid $w.caxis  -row 2 -column 2
   grid $w.allcvs -row 1 -column 3
   grid $w.bas -row 2 -column 3
-  grid $w.faxis  -row 1 -column 4
-  grid $w.fram   -row 2 -column 4
+  # grid $w.faxis  -row 1 -column 4
+  # grid $w.fram   -row 2 -column 4
 
   return $w
 }

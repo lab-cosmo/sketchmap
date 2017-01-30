@@ -1072,8 +1072,10 @@ proc cvlist::readColvar {args} {
    set ncolvar 0              ; # Counter of the number of colvars read in
    while { [gets $fd line] !=-1 } {
       set sline [regexp -inline -all -- {\S+} $line]
-      for { set id 0 } { $id < $ncv } { incr id } { lappend tmpdata([lindex $cvnames $id]) [lindex $sline $id] }
-      incr ncolvar
+      if { [lindex $sline 0] != "#!" } {
+          for { set id 0 } { $id < $ncv } { incr id } { lappend tmpdata([lindex $cvnames $id]) [lindex $sline $id] }
+          incr ncolvar
+      }
    }
    close $fd
 
