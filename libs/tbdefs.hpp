@@ -47,9 +47,7 @@
  **************************************/
 inline double conj(const double& g) {return g;}
 inline std::complex<double> conj(const std::complex<double>& g) {return std::conj(g);}  
-#ifndef __PGI
 inline double abs(const double& g) {return fabs(g);}
-#endif
 namespace toolbox{
 #if defined(__i386__)
     extern "C" {
