@@ -285,15 +285,9 @@ public:
 };
 
 template <class U, unsigned long N>
-#ifdef _IBM
 IterOptions<U,N>::IterOptions(unsigned long nmaxstep,  const fixarray<double,N>& nthresh,
                    const fixarray<U,N>& ntarget,
                    const fixarray<IChkFlags,N>& nflags)
-#else
-IterOptions<U,N>::IterOptions(unsigned long nmaxstep=1,  const fixarray<double,N>& nthresh=fixarray<double,N>(0.),
-                   const fixarray<U,N>& ntarget=fixarray<U,N>(),
-                   const fixarray<IChkFlags,N>& nflags=fixarray<IChkFlags,N>(ichk_default))
-#endif
     : val(), oval(), nstep(), maxstep(nmaxstep), thresh(nthresh), target(ntarget), flags(nflags)
 { nstep=0; val=0.; oval=0.;  fmaxstep_reached=false; }
 

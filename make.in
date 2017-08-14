@@ -1,6 +1,6 @@
 # COMPILER AND COMPILER FLAGS
 CXX=g++
-CXXFLAGS:=$(CXXFLAGS) -g -O3 -ftracer -floop-optimize -funroll-loops -D_IBM
+CXXFLAGS:=$(CXXFLAGS) -g -O3 -ftracer -floop-optimize -funroll-loops 
 
 # AUTOMATIC DEPENDENCY GENERATION
 MAKEDEPEND=g++ -M $(CXXFLAGS)
