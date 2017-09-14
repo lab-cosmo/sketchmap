@@ -2,7 +2,7 @@
 
 # modify this variable so that it points to the path where the sketch-map
 # executables are stored
-SMAPROOT=$HOME/smap/bin/
+SMAPROOT=$HOME/bin/
 
 # makes sure we have a valid dimred path
 if [ ! -e "$SMAPROOT/dimred" ]; then
