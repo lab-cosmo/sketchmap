@@ -138,10 +138,12 @@ int main(int argc, char**argv)
 //        LP.row(0)=HP.row(0);
 //        for (unsigned long j=0; j<N; ++j) { mdlist[j]=metric->dist(&LP(0,0),&HP(j,0),D); }         
 //    }
-
+    // we have to do a dry run for the random number generator, otherwise the first random number
+    // will be always 0
+    rndgen();
     // First point is picked at random -- except if otherwise specified    
     if (fsimil && smode!="minmax") ERROR("Similarity selection is only (rudimentarily) implemented for minmax mode");
-    if (ifirst<0) isel[0]=maxj=rndgen()*N; else isel[0]=maxj=ifirst; 
+    if (ifirst<0) isel[0]=maxj=int(rndgen()*N); else isel[0]=maxj=ifirst; 
     LP.row(0)=HP.row(maxj);
     for (unsigned long j=0; j<N; ++j) { mdlist[j]=(fsimil? HP(0,j): metric->dist(&LP(0,0),&HP(j,0),D) ); }
     
