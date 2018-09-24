@@ -523,7 +523,7 @@ template<class FCLASS> void ls_brent(
             et=e;
             e=d;
                                                         
-            if ((abs(p)>=fabs(0.5*q*et) || p<=q*(a-x)
+            if ((std::abs(p)>=fabs(0.5*q*et) || p<=q*(a-x)
                  || p>=q*(b-x))) goto one;
             d=p/q; u=x+d;
             if ((u-a)<t2 || (b-u) <t2) d=(xm-x>=0?fabs(t1):-fabs(t1));

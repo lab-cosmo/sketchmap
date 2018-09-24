@@ -1,7 +1,7 @@
 /* Main include file for libtoolbox.
    --------------------------------------------------
    Author: Michele Ceriotti, 2008
-   Distributed under the GNU General Public License  
+   Distributed under the GNU General Public License
 */
 
 #ifndef __TBDEFS_H
@@ -25,8 +25,8 @@
  *          MACROS & DEFINES          *
  **************************************/
 #define __TB_STD_EPS 1e-5
-#define __TB_STD_MAXSTEP 100 
- 
+#define __TB_STD_MAXSTEP 100
+
 #if __STDC_VERSION__ < 199901L
 #   if __GNUC__ >= 2
 #       define __func__ __FUNCTION__
@@ -46,8 +46,10 @@
  *        GENERAL FUNCTIONS           *
  **************************************/
 inline double conj(const double& g) {return g;}
-inline std::complex<double> conj(const std::complex<double>& g) {return std::conj(g);}  
-inline double abs(const double& g) {return fabs(g);}
+inline std::complex<double> conj(const std::complex<double>& g) {return std::conj(g);}
+#ifndef __PGI
+//inline double abs(const double& g) {return fabs(g);}
+#endif
 namespace toolbox{
 #if defined(__i386__)
     extern "C" {
@@ -65,7 +67,7 @@ namespace toolbox {
     //sort template. keep here until we find a better place for this
     template<class U> void heapsort(std::valarray<U>& a)
     {
-        unsigned long n=a.size(); long s, r, e, c; 
+        unsigned long n=a.size(); long s, r, e, c;
         U swp;
         if (n<=1) return; //does not sort empty or single-element array
     //heapify the array
@@ -80,7 +82,7 @@ namespace toolbox {
             }
             --s;
         }
-    
+
         while (e>0)
         {
             { swp=a[e]; a[e]=a[0]; a[0]=swp; }
@@ -92,7 +94,7 @@ namespace toolbox {
             }
         }
     }
-} 
+}
 
 namespace toolbox{
     double str2float(const std::string& str);
@@ -114,28 +116,28 @@ private:
     hrttype base, curr;
 #if defined(__i386__)
     inline hrttype gettime() { return rdtsc(); }
-#else 
+#else
 #ifdef TB_MPI
-    inline hrttype gettime() 
-    { 
+    inline hrttype gettime()
+    {
         double mptime=MPI_Wtime();
         return (hrttype) (mptime*1e6);
     }
 #else
-    inline hrttype gettime() 
-    { 
+    inline hrttype gettime()
+    {
         return (hrttype) (clock())*((hrttype) CLOCKS_PER_SEC);
     }
 #endif
 #endif
-    bool fpaused; 
+    bool fpaused;
 public:
     HRTimer() { curr=base=(hrttype) 0; fpaused=false;}
     void start() { if (fpaused) fpaused=false; else base=gettime(); }
     void stop() { curr=gettime()-base; base=0; fpaused=false;}
     void hold() { curr=(base==(hrttype) 0?base:gettime()-base); fpaused=true; }
-    
-    inline operator double() 
+
+    inline operator double()
     {  return (double) curr; }
 };
 
@@ -146,15 +148,15 @@ private:
     U elems[N];
 
 public:
-    fixarray() { 
-        for (unsigned long i=0; i<N; ++i) 
-        { 
-            elems[i]=U(); 
-        } 
+    fixarray() {
+        for (unsigned long i=0; i<N; ++i)
+        {
+            elems[i]=U();
+        }
     }
-    
+
     template<class V> fixarray(const fixarray<V,N>& iarr) { for (unsigned long i=0; i<N; ++i) elems[i]=(U) iarr[i]; }
-    
+
     template<class V> fixarray(const V iarr[N]) { for (unsigned long i=0; i<N; ++i) elems[i]=(U) iarr[i]; }
 
     template<class V> fixarray(const std::valarray<V>& iarr) {
@@ -162,7 +164,7 @@ public:
         if (iarr.size()!=N) ERROR("Size mismatch in copy constructor")
 #endif
         for (unsigned long i=0; i<N; ++i) elems[i]=(U) iarr[i]; }
-    
+
     //variadic function. beware, NO ERROR CHECK ON N. of args CAN BE DONE
     fixarray(const U& only) { for (unsigned long i=0; i<N; ++i) elems[i]=only; }
     fixarray(const U first, const U second, ...) {
@@ -171,20 +173,20 @@ public:
         elems[1]=second;
         if (N<=2) return;
         va_list ap; va_start(ap, second);
-        for (unsigned long i=2; i<N; ++i) elems[i]=va_arg(ap,U); 
+        for (unsigned long i=2; i<N; ++i) elems[i]=va_arg(ap,U);
         va_end(ap);
     }
-    
-    template<class V> fixarray<U,N>& operator= (const fixarray<V,N>& iarr) 
-    { 
+
+    template<class V> fixarray<U,N>& operator= (const fixarray<V,N>& iarr)
+    {
         if ((void*) &iarr== (void *) this) return *this;
-        for (unsigned long i=0; i<N; ++i) elems[i]=iarr[i]; 
+        for (unsigned long i=0; i<N; ++i) elems[i]=iarr[i];
         return *this;
     }
-    
-    template<class V> fixarray<U,N>& operator= (const V& iel) 
+
+    template<class V> fixarray<U,N>& operator= (const V& iel)
     { for (unsigned long i=0; i<N; ++i) elems[i]=iel;  return *this; }
-    
+
     inline U& operator[] (unsigned long i)
     {
 #ifdef DEBUG
@@ -192,7 +194,7 @@ public:
 #endif
         return elems[i];
     }
-    
+
     inline const U& operator[] (unsigned long i) const
     {
 #ifdef DEBUG
@@ -200,54 +202,54 @@ public:
 #endif
         return elems[i];
     }
-    
+
     operator double() {
         return elems[0];
     }
-    
+
     inline unsigned long size() { return N; }
 };
 
 template <class U>
-class fixarray<U ,0u> 
+class fixarray<U ,0u>
 {
     //do something which raise an error!
     typename StaticError<U>::Cannot_define_fixarrays_of_size_zero a;
 };
 
 //default is NECESSARY, ABSOLUTE, VALUE. flags serve to change these defaults
-enum IChkFlags{ ichk_default=0, ichk_sufficient=1, ichk_relative=2, ichk_change=4}; 
+enum IChkFlags{ ichk_default=0, ichk_sufficient=1, ichk_relative=2, ichk_change=4};
 
 template<class U, unsigned long N=1u> class IterOptions;
 template<class U, unsigned long N>
 class IterOptions
 {
-private: 
+private:
     fixarray<U,N> val;
     fixarray<U,N> oval;
     fixarray<unsigned long,N> nstep;
     bool fmaxstep_reached;
-    
+
 public:
     unsigned long maxstep;
     fixarray<double,N> thresh;
     fixarray<U,N> target;
     fixarray<unsigned long,N> flags;
-    
+
     void setval(const U& v, unsigned long i=0)
     {
         oval[i]=val[i];
         val[i]=v;
         nstep[i]++;
     }
-    
+
     unsigned long iter() { unsigned long mx=0; for (unsigned long i=0; i<N; ++i) if (nstep[i]>mx) mx=nstep[i]; return mx; }
-    
+
     bool maxstep_reached() {return fmaxstep_reached;}
-    
+
     operator bool() {
         bool rt=true;
-        
+
         for (unsigned long i=0; i<N; ++i)
         {
             double d;
@@ -256,7 +258,7 @@ public:
             if (nstep[i]==1 && (flags[i] & ichk_change)) { rt=false; continue; }
             if (flags[i] & ichk_change) d=abs(oval[i]-val[i]);
             else d=abs(val[i]-target[i]);
-            
+
             if (flags[i] & ichk_relative)
             {
                 if ((flags[i] &ichk_change) && abs(val[i])>0. ) d*=1/abs(val[i]);
@@ -268,17 +270,19 @@ public:
         return rt;
     }
 
-    IterOptions(unsigned long maxstep, const fixarray<double,N>& nthresh, const fixarray<U,N>& ntarget, const fixarray<IChkFlags,N>& nflags);
-    
-    IterOptions(unsigned long nmaxstep, const double& nthresh, const U& ntarget=0., const IChkFlags& nflags=ichk_default) 
-    { 
-        thresh=nthresh; 
-        val=0.; 
-        oval=0.; 
-        target=ntarget; 
-        flags=nflags; 
-        maxstep=nmaxstep; 
-        nstep=0; 
+    IterOptions(unsigned long nmaxstep=1,  const fixarray<double,N>& nthresh=fixarray<double,N>(0.),
+                   const fixarray<U,N>& ntarget=fixarray<U,N>(),
+                   const fixarray<IChkFlags,N>& nflags=fixarray<IChkFlags,N>(ichk_default));
+                   
+    IterOptions(unsigned long nmaxstep, const double& nthresh, const U& ntarget=0., const IChkFlags& nflags=ichk_default)
+    {
+        thresh=nthresh;
+        val=0.;
+        oval=0.;
+        target=ntarget;
+        flags=nflags;
+        maxstep=nmaxstep;
+        nstep=0;
         fmaxstep_reached=false; }
 };
 
@@ -341,7 +345,7 @@ public:
         }
         ostr<<"********************************************************************************\n";
     }
-    
+
     CTBBD() : std::map<std::string,BenchData>() {}
 };
 };
@@ -363,11 +367,12 @@ struct nullstream:
 #ifndef __EXTERNALS
 namespace std{
     extern toolbox::nullstream cnull;
-}; 
+};
 
 namespace toolbox{
     namespace constant{
-        const double pi=3.141592654;
+        const double pi=3.1415926535897932385;
+        const double sqrt2=1.41421356237309504880;
     };
 #ifdef BENCHMARK
     extern CTBBD TBBenchmarks;
@@ -384,7 +389,7 @@ namespace std{
 /************************
   MPI SAFE STREAMS
 *************************/
-namespace toolbox{    
+namespace toolbox{
 //MPI-SAFE OUTPUT (execute on every node but output only on node 0)
 class mpiostream {
 private:
@@ -392,15 +397,15 @@ private:
 #ifdef TB_MPI
     MPI_Comm mycomm;
 #endif
-    
+
 public:
 #ifdef TB_MPI
     mpiostream(std::ostream& ros, const MPI_Comm& rcomm=MPI_COMM_WORLD) : os(ros), mycomm(rcomm) {}
 #else
     mpiostream(std::ostream& ros) : os(ros) {}
 #endif
-    
-    template<class T> std::ostream& operator << (T data) 
+
+    template<class T> std::ostream& operator << (T data)
     {
 #ifdef TB_MPI
         static int myrank=-1;
@@ -410,7 +415,7 @@ public:
         return os<<data;
 #endif
     }
-    
+
     operator std::ostream&()
     {
 #ifdef TB_MPI
@@ -427,7 +432,7 @@ public:
 #ifndef __EXTERNALS
 namespace std{
     extern toolbox::mpiostream pout, perr;
-}; 
+};
 #endif
 
 

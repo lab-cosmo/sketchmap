@@ -258,7 +258,7 @@ int main(int argc, char**argv)
            {
                Dij=mdsopts.metric->dist(&mpoints(i,0),&mpoints(j,0),D); 
                dij=neuclid.dist(&iteropts.ipoints(i,0),&iteropts.ipoints(j,0),d);
-               iteropts.dweights(i,j)=iteropts.dweights(j,i)=pow(abs(fhd.f(Dij)-fld.f(dij)),2.0)/pow(abs(iteropts.tfunH.f(Dij)-dij),2.0);
+               iteropts.dweights(i,j)=iteropts.dweights(j,i)=pow(std::abs(fhd.f(Dij)-fld.f(dij)),2.0)/pow(std::abs(iteropts.tfunH.f(Dij)-dij),2.0);
            }
        std::cerr<<" matrix transfer weights have been built\n";
     }
