@@ -1,7 +1,7 @@
 This folder contains an archive with the files needed to reproduce the sketch-map published in Ref. Ardevol et al., J. Chem. Theory Comput., 2015, 11 (3), pp 1086–1093 [10.1021/ct500950z].
+The MD trajectory can be downloaded at the link: https://drive.google.com/open?id=1iCio05-gO5Js-Ri19F3x71tysc-mxuJU
 In the archive you will find the following files:
 
--bhp_32r.4.300ns.xtc.001 and bhp_32r.4.300ns.xtc.002 : the trajectory file. You must join the files into a single xtc file.
 -bhp.pdb : a PDB file with the topology. It can be used to properly visualize and decode the trajecotry
 -colvar.wt.30cv.4 : ramachandran angles for each residue in the backbone
 -lm4.30cv.w01.1 : high-dimensional landmarks
