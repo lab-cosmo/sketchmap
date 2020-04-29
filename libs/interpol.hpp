@@ -95,7 +95,7 @@ class InterpolateBicubic {
     public:
         
         void set_table(const std::valarray<double>& nx1list, const std::valarray<double>& nx2list, const FMatrix<double>& nylist, const FTensor<double,3>& ny1list=(FTensor<double,3>()));
-        inline double operator() (const std::valarray<double>& x) { } //return intrp(search1(x),x); }
+        inline double operator() (const std::valarray<double>& x) { return 0; } //return intrp(search1(x),x); }
         inline void get_ydy(const fixarray<double, 2>& x, double& y, fixarray<double, 2>& dy) 
         { dintrp(fixarray<unsigned long, 2>(xlist[0](x[0]), xlist[1](x[1])), x, y, dy); }
 

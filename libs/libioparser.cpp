@@ -1,9 +1,9 @@
 /* A simple yet sophisticated input parser
    --------------------------------------------------
    Author: Michele Ceriotti, 2008
-   Distributed under the GNU General Public License  
+   Distributed under the GNU General Public License
 */
-   
+
 #include "ioparser.hpp"
 /***************************************************************************
  * This contains a bunch of member functions connected with io-lib classes *
@@ -21,7 +21,7 @@ bool io_label_seek(std::istream& istr, const std::string& label)
 
 /*  BEGINS IOMap MEMBER FUNCTIONS */
 IOMap::~IOMap()
-{ 
+{
     std::map<std::string, IFBase*>::iterator it=begin();
     while (it!=end()) { delete it->second; ++it;}
 }
@@ -29,7 +29,7 @@ IOMap::~IOMap()
 IFBase& IOMap::operator[] (const std::string& key)
 {
     std::map<std::string, IFBase*>::iterator it;
-    
+
     if ((it=find(key))==end()) ERROR("Trying to access non-existing element!");
     return *(it->second);
 }
@@ -40,34 +40,34 @@ IOMap& IOMap::operator<<(std::istream& istr)
     std::string dump, label;
     while (istr>>label)
     {
-        //handle comments 
+        //handle comments
         if (label[0]=='#')  { getline(istr,dump); continue; }
-        //get what is supposed to be a label! if the first label we get is a brace, this means this is a sub-input 
+        //get what is supposed to be a label! if the first label we get is a brace, this means this is a sub-input
         //and that we must look for a terminator as well
-        
+
         if (label=="") continue;
-        if (label=="{") 
+        if (label=="{")
         {
             if (fnested || fstarted) { ERROR("Dangling open brace in input file."); }
-            else { fnested=true; continue; } 
+            else { fnested=true; continue; }
         }
 
-        if (label=="}") 
+        if (label=="}")
         { if (fnested) break; else ERROR("Dangling closed brace in input file."); }
-        
-        if (find(label)!=end()) 
+
+        if (find(label)!=end())
         {
             fstarted=true;
             if (((*this)[label].flags & iff_set) && (flags & if_warn_multiple))
                 std::cerr<<"Warning. Option "<<label<<" is set multiple times.\n";
-            istr >> (*this)[label]; 
+            istr >> (*this)[label];
             if ((flags & if_warn_nonvalid) && ((*this)[label].flags & iff_nonvalid))
                 std::cerr<<"Warning. Invalid settings for option "<<label<<".\n";
         }
         else if (flags & if_warn_unused)
         std::cerr<<"Warning. I cannot understand what "<<label<<" means.\n";
     }
-    
+
     //checks whether some flags have not been set and are not optional
     if (flags & if_warn_incomplete)
     {
@@ -82,7 +82,7 @@ IOMap& IOMap::operator<<(std::istream& istr)
         }
     }
     return *this;
-} 
+}
 
 const IOMap& IOMap::operator>>(std::ostream& ostr) const
 {
@@ -93,25 +93,27 @@ const IOMap& IOMap::operator>>(std::ostream& ostr) const
 /*  ENDSS IOMap MEMBER FUNCTIONS */
 
 /*  BEGINS IField<IOMap> MEMBER FUNCTIONS */
-template <> bool IField<IOMap>::operator>> (std::ostream& ostr) const
+template <> std::ostream& IField<IOMap>::operator>> (std::ostream& ostr) const
 {
     ostr<<name<<" {\n";
     value >> ostr;
     ostr<<" }\n";
-    return true;
-} 
+    return ostr;
+}
 
-template <> bool IField<IOMap>::operator<< (std::istream& istr)
+template <> std::istream& IField<IOMap>::operator<< (std::istream& istr)
 {
-    value << istr; 
-    flags|=iff_set; flags&=~iff_nonvalid; 
+    value << istr;
+    flags|=iff_set; flags&=~iff_nonvalid;
     std::map<std::string, IFBase*>::const_iterator it=value.begin();
     //if any of the members is nonset or nonvalid sets the flags of the IOMap field accordingly
-    
-    for (; it!=value.end(); ++it) 
-    {  if (it->second->flags & iff_nonvalid==iff_nonvalid) flags&=~iff_nonvalid; }
-    
-    return true;
+
+    for (; it!=value.end(); ++it)
+    {  if (it->second->flags & iff_nonvalid==iff_nonvalid)
+         { flags&=~iff_nonvalid; istr.setstate(std::ios::failbit);}
+     }
+
+    return istr;
 }
 /*  ENDS IField<IOMap> MEMBER FUNCTIONS */
 }; //ends namespace toolbox
