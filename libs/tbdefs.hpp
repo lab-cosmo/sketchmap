@@ -47,9 +47,7 @@
  **************************************/
 inline double conj(const double& g) {return g;}
 inline std::complex<double> conj(const std::complex<double>& g) {return std::conj(g);}
-#ifndef __PGI
-//inline double abs(const double& g) {return fabs(g);}
-#endif
+
 namespace toolbox{
 #if defined(__i386__)
     extern "C" {
@@ -256,13 +254,13 @@ public:
             if (nstep[i]>=maxstep) { fmaxstep_reached=true; if (flags[i] & ichk_sufficient) return true;  else continue; }
             if (nstep[i]==0) { rt=false; continue; }
             if (nstep[i]==1 && (flags[i] & ichk_change)) { rt=false; continue; }
-            if (flags[i] & ichk_change) d=abs(oval[i]-val[i]);
-            else d=abs(val[i]-target[i]);
+            if (flags[i] & ichk_change) d=std::abs(oval[i]-val[i]);
+            else d=std::abs(val[i]-target[i]);
 
             if (flags[i] & ichk_relative)
             {
-                if ((flags[i] &ichk_change) && abs(val[i])>0. ) d*=1/abs(val[i]);
-                else if (abs(target[i])>0. ) d*=1./abs(target[i]);
+                if ((flags[i] &ichk_change) && std::abs(val[i])>0. ) d*=1/std::abs(val[i]);
+                else if (std::abs(target[i])>0. ) d*=1./std::abs(target[i]);
             }
             if (d>thresh[i] && !(flags[i] & ichk_sufficient)) rt=false;
             if (d<thresh[i] && (flags[i] & ichk_sufficient)) { return true;}
@@ -273,7 +271,7 @@ public:
     IterOptions(unsigned long nmaxstep=1,  const fixarray<double,N>& nthresh=fixarray<double,N>(0.),
                    const fixarray<U,N>& ntarget=fixarray<U,N>(),
                    const fixarray<IChkFlags,N>& nflags=fixarray<IChkFlags,N>(ichk_default));
-                   
+
     IterOptions(unsigned long nmaxstep, const double& nthresh, const U& ntarget=0., const IChkFlags& nflags=ichk_default)
     {
         thresh=nthresh;
