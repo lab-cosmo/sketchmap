@@ -57,8 +57,9 @@ public:
     void getstatus(status_type& state) const { state=pstate; }
     
     //constructors
-    StdRndUniform(const status_type& init=0) { pstate=init; }
+    StdRndUniform(const status_type& init=0) { srand48(init); pstate=0; }
     StdRndUniform(const StdRndUniform& ru) { setstatus(ru.pstate);}
+    void seed(const status_type& seed) { srand48(seed); pstate=0; }
     
     StdRndUniform& operator=(const StdRndUniform& ru) { setstatus(ru.pstate); return *this; }    
     inline rnd_type operator() () { return extract(); }

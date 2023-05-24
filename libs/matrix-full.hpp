@@ -48,6 +48,7 @@ class FMatrix
     template <class T> friend class FMatrix;
     friend class IField<FMatrix<U> >;
     friend class IField<const FMatrix<U> >;
+    template <class T> friend bool operator == (const FMatrix<T>& A, const FMatrix<T>& B);
     template <class T, class V> friend void scale(FMatrix<T>& a, const V& b);
     template <class T> friend void neg(FMatrix<T>& a);
     template <class T> friend void map(FMatrix<T>& a, T (*f)(const T));
@@ -157,6 +158,11 @@ public:
         return data[i*wc+j]; 
     }
     
+    inline std::slice_array<U> all()
+    {
+        return data[std::slice(0,data.size(),1)];
+    }
+    
     inline std::slice_array<U> row(const index_type& i)
     {
         return data[std::slice(i*wc,wc,1)];
@@ -254,8 +260,7 @@ public:
     
     inline U operator() (const unsigned long& i, const unsigned long& j)  const
     { if (exists(i,j)) return access(i,j); else return 0;}
-    
-    
+       
     template <class V> inline FMatrix<U>& operator += (const V& s)
     { incr(*this, s); return *this; }
     
@@ -288,7 +293,6 @@ template <class V, class T> inline const FMatrix<V> operator + (const FMatrix<V>
 template <class V, class T> inline const FMatrix<V> operator * (const FMatrix<V>& a, const T& b)
 { FMatrix<V> r(a); scale(r,b); return r; }
 
-
 template <class V, class T> inline const FMatrix<V> operator * (const T& b, const FMatrix<V>& a)
 { FMatrix<V> r(a); scale(r,b); return r; }
 
@@ -296,6 +300,14 @@ template <class V, class T> inline const FMatrix<V> operator * (const FMatrix<V>
 { 
     FMatrix<V> r; double att; MatrixOptions<FMatrix<V> > mops; 
     a.getops(mops); r.setops(mops);  mult(a,b,r); return r; 
+}
+
+template <class U> bool operator == (const FMatrix<U>& A, const FMatrix<U>& B) 
+{ 
+	if (A.wc != B.wc || A.wr != B.wr) return false;
+	for (unsigned long i=0; i<A.data.size(); ++i)
+	  if (A.data[i]!=B.data[i]) return false;
+	return true;
 }
 
 template <class U, class V> 
