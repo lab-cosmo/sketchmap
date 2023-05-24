@@ -183,7 +183,7 @@ Please enter low  dimension sigma, a, b [e.g. 6.0 2 6 ] 6 1 2 <br/>
          and  <span class="code">-fun-ld sigma,a,b</span>:
       </p>
       <div class="code" >
-         grep --color=auto -v \# highd-landmarks | dimred -D 24 -pi 6.283185 -d 2 -w -center -init lowd-gmds-metric -grid 15.0,21,201 -fun-hd 6,12,12 -fun-ld 6,1,2 -imix 0.1 -preopt 50 -gopt 3 > lowd-gmds-smap_0.1      
+         grep -v \# highd-landmarks | dimred -D 24 -pi 6.283185 -d 2 -w -center -init lowd-gmds-metric -grid 15.0,21,201 -fun-hd 6,12,12 -fun-ld 6,1,2 -imix 0.1 -preopt 50 -gopt 3 > lowd-gmds-smap_0.1      
       </div>
       <p>
          <span class="code">-imix frac</span> specifies that a fraction frac of metric MDS stress will be
