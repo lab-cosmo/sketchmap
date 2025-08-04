@@ -599,7 +599,7 @@ void min_powell (
       const std::valarray<double> & initial_pos,
       std::valarray<double>& rpos, double& rvalue,
       const PowellOpts& op,
-      std::valarray<std::valarray<double> >& u=std::valarray<double>(0)
+      std::valarray<std::valarray<double> >& u
      )
 {
     RndGaussian<double,StdRndUniform> rng;

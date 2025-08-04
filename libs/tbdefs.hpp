@@ -21,6 +21,20 @@
 #include <complex>
 #include <time.h>
 
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const std::valarray<T>& v)
+{
+    os << "[";
+    if (v.size() > 0) {
+        os << v[0];
+        for (size_t i = 1; i < v.size(); ++i) {
+            os << ", " << v[i];
+        }
+    }
+    os << "]";
+    return os;
+}
+
 /**************************************
  *          MACROS & DEFINES          *
  **************************************/

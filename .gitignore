@@ -5,3 +5,7 @@ bin/*
 *.d
 *.a
 make.in
+
+# pixi environments
+.pixi
+*.egg-info

@@ -1,0 +1,25 @@
+name: Build and check binaries
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+on: [push, pull_request]
+jobs:
+  build_eon:
+    runs-on: ${{ matrix.os }}
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # TODO: Check windows-2022 later
+        os: [ubuntu-22.04, macos-13, macos-14]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.10
+        with:
+          cache: true
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+          activate-environment: true
+      - name: Build sketchmap tools
+        shell: pixi run bash -e {0}
+        run: |
+          make -j $(nproc)

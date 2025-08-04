@@ -124,7 +124,9 @@ int main(int argc, char**argv)
     else
     {
       csv2floats(fdhd,tfpars);  fhdpars=tfpars;
-      std::cerr<<"high-dim pars"<<tfpars<<"\n";
+      std::cerr << "high-dim pars";
+      toolbox::operator<<(std::cerr, tfpars);
+      std::cerr <<"\n";
       if (tfpars.size()==2)
       {
         opts.tfunH.set_mode(NLDRGamma,tfpars);
@@ -142,7 +144,9 @@ int main(int argc, char**argv)
     else
     {
       csv2floats(fdld,tfpars); fldpars=tfpars;
-      std::cerr<<"lo-dim pars"<<tfpars<<"\n";
+      std::cerr<<"lo-dim pars";
+      toolbox::operator<<(std::cerr, tfpars);
+      std::cerr <<"\n";
       if (tfpars.size()==2)
       {
         opts.tfunL.set_mode(NLDRGamma,tfpars);

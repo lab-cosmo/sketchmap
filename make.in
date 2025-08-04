@@ -1,6 +1,18 @@
+# -*- mode:makefile; -*-
+
 # COMPILER AND COMPILER FLAGS
-CXX=g++
-CXXFLAGS:=$(CXXFLAGS) -g -O3 -ftracer -floop-optimize -funroll-loops 
+CXX?=g++
+
+# Set compiler-specific flags
+ifeq ($(CXX),g++)
+    CXXFLAGS_SPECIFIC=-g -O3 -ftracer -floop-optimize -funroll-loops
+else ifeq ($(CXX),clang++)
+    CXXFLAGS_SPECIFIC=-g -O3 -funroll-loops -flto
+else
+    CXXFLAGS_SPECIFIC=-g -O3
+endif
+
+CXXFLAGS=$(CXXFLAGS_SPECIFIC)
 
 # AUTOMATIC DEPENDENCY GENERATION
 MAKEDEPEND=g++ -M $(CXXFLAGS)
@@ -9,7 +21,14 @@ MAKEDEPEND=g++ -M $(CXXFLAGS)
 # Lapack includes and linking
 
 ILAPACK=
-LLAPACK=-llapack
+LLAPACK=
+
+ifeq ($(shell uname -s),Darwin)
+    LLAPACK=-framework Accelerate
+else
+    LLAPACK=-lopenblas
+endif
+
 
 TBSRC=../libs/
 LDFLAGS=-L$(TBSRC) -ltoolbox $(LLAPACK)
