@@ -9,7 +9,7 @@ MAKEDEPEND=g++ -M $(CXXFLAGS)
 # Lapack includes and linking
 
 ILAPACK=
-LLAPACK=-llapack
+LLAPACK=-lopenblas
 
 TBSRC=../libs/
 LDFLAGS=-L$(TBSRC) -ltoolbox $(LLAPACK)

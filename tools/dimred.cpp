@@ -140,8 +140,10 @@ int main(int argc, char**argv)
     else 
     {
       csv2floats(fdhd,tfpars);  fhdpars=tfpars; 
-      std::cerr<<"high-dim pars"<<tfpars<<"\n";     
-      if (tfpars.size()==2) 
+      std::cerr << "high-dim pars";
+      toolbox::operator<<(std::cerr, tfpars);
+      std::cerr <<"\n";
+      if (tfpars.size()==2)
       {
         iteropts.tfunH.set_mode(NLDRGamma,tfpars);       
       }
@@ -160,8 +162,10 @@ int main(int argc, char**argv)
     else 
     {
       csv2floats(fdld,tfpars); fldpars=tfpars;      
-      std::cerr<<"lo-dim pars"<<tfpars<<"\n";     
-      if (tfpars.size()==2) 
+      std::cerr<<"lo-dim pars";
+      toolbox::operator<<(std::cerr, tfpars);
+      std::cerr <<"\n";
+      if (tfpars.size()==2)
       {
         iteropts.tfunL.set_mode(NLDRGamma,tfpars);  
       }
@@ -200,7 +204,9 @@ int main(int argc, char**argv)
 
     std::cerr<<"hey "<<itermode<<" "<<iteropts.minmode<<"\n";
     std::valarray<double> sat(0.0,2); csv2floats(tempopts,sat);
-    std::cerr<<" simulated annealing ops: "<<sat<<"\n";
+    std::cerr << " simulated annealing ops: ";
+    toolbox::operator<<(std::cerr, sat);
+    std::cerr<<"\n";
     iteropts.saopts.temp_init=sat[0]; iteropts.saopts.temp_final=sat[1];
     iteropts.ptopts.temp_init=sat[0]; iteropts.ptopts.temp_final=sat[1]; 
     iteropts.ptopts.temp_factor=ptfac; iteropts.ptopts.replica=npt;
